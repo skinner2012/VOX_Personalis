@@ -1,0 +1,40 @@
+---
+description: Use Conventional Commits when generating commit messages
+alwaysApply: true
+---
+
+# Conventional Commits
+
+**Output only Conventional Commit messages.** Every generated commit message MUST start with a type keyword (feat, fix, docs, style, refactor, perf, test, chore) followed by an optional scope in parentheses, then a colon and space, then the subject. Example: `feat(auth): add Google login`. Never output a plain sentence or non-conventional format.
+
+## Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+## Types
+
+Use one of these types (lowercase):
+
+- **feat**: New feature
+- **fix**: Bug fix
+- **docs**: Documentation only
+- **style**: Formatting, missing semicolons, etc. (no code change)
+- **refactor**: Code change that neither fixes a bug nor adds a feature
+- **perf**: Performance improvement
+- **test**: Adding or updating tests
+- **chore**: Build, CI, dependencies, tooling (no production code change)
+
+## Examples
+
+- `feat(auth): add login with Google`
+- `fix(api): handle null in user lookup`
+- `docs: update README setup steps`
+- `chore(deps): bump axios to 1.6`
+
+Keep the subject line under ~72 characters; capitalize after the colon; use imperative mood ("add" not "added").

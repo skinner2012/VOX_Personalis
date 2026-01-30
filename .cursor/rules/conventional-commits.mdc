@@ -30,9 +30,16 @@ Use one of these types (lowercase):
 - **test**: Adding or updating tests
 - **chore**: Build, CI, dependencies, tooling (no production code change)
 
+## Scope Format (VOX Personalis)
+
+For this project, use optional **Stage-Milestone/Component** notation:
+- Format: `[SX-MY/]component` where SX-MY is optional
+- Examples: `S1-M0/specs`, `S2-M3/api`, or just `specs`, `api`
+
 ## Examples
 
-- `feat(auth): add login with Google`
+- `feat(S1-M0/specs): add VAD-based silence detection` (with stage/milestone)
+- `feat(specs): add VAD-based silence detection` (without stage/milestone)
 - `fix(api): handle null in user lookup`
 - `docs: update README setup steps`
 - `chore(deps): bump axios to 1.6`

@@ -1,0 +1,56 @@
+[project]
+name = "vox-personalis"
+version = "0.1.0"
+description = "VOX Personalis - Personalized speech recognition engineering project"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "soundfile>=0.12.0",
+    "librosa>=0.10.0",
+    "webrtcvad==2.0.10",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.0",
+    "mypy>=1.8.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []  # No Python modules to install, just scripts
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = []  # Don't auto-discover packages
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Set to true for stricter checking

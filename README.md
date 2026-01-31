@@ -94,6 +94,60 @@ This project is about **engineering judgment**, not hype.
 
 ---
 
+## Development
+
+### Setup
+
+1. **Create and activate a virtual environment:**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On macOS/Linux
+# OR
+venv\Scripts\activate  # On Windows
+```
+
+2. **Install the project with development dependencies:**
+
+```bash
+pip install -e ".[dev]"
+```
+
+> **Important:** Always activate the virtual environment before running any scripts or tools.
+
+### Code Quality Tools
+
+This project uses **Ruff** for formatting and linting, and **mypy** for type checking.
+
+#### Quick Usage (with venv activated)
+
+```bash
+# Check code quality (no changes)
+./scripts/code_qaulity_check.sh                     # Everything
+./scripts/code_qaulity_check.sh scripts/            # Specific directory
+./scripts/code_qaulity_check.sh file.py             # Specific file
+
+# Check and auto-fix issues
+./scripts/code_qaulity_check.sh --fix               # Everything
+./scripts/code_qaulity_check.sh --fix scripts/      # Specific directory
+./scripts/code_qaulity_check.sh --fix file.py       # Specific file
+```
+
+#### Direct Tool Usage
+
+```bash
+# Format code
+ruff format .
+
+# Lint and auto-fix
+ruff check --fix .
+
+# Type check
+mypy scripts/
+```
+
+---
+
 ## License
 
 MIT License.

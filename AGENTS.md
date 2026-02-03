@@ -11,10 +11,13 @@ Always use **Conventional Commits** with optional **Stage-Milestone/Component no
 - **type**: feat, fix, docs, style, refactor, perf, test, chore
 
 **Examples**:
+
 - `feat(S1-M0/specs): add VAD-based silence detection` (with stage/milestone)
 - `feat(specs): add VAD-based silence detection` (without stage/milestone)
 - `docs(S1-M0/specs): update histogram bucket definitions`
 - `fix(api): handle null in user lookup`
 - `chore(deps): add webrtcvad and tqdm`
 
-Use imperative mood, keep under ~72 chars. Include Stage-Milestone prefix when work is tied to a specific milestone; omit for general maintenance or cross-cutting changes.
+Use imperative mood, keep under ~72 chars. Include Stage-Milestone prefix
+when work is tied to a specific milestone; omit for general maintenance
+or cross-cutting changes.

@@ -1,13 +1,15 @@
 #!/bin/bash
 # Run code quality checks and optionally fix issues
 # Usage:
-#   ./scripts/check.sh                   # Check everything (no changes)
-#   ./scripts/check.sh --fix             # Check and auto-fix everything
-#   ./scripts/check.sh scripts/          # Check specific directory
-#   ./scripts/check.sh --fix scripts/    # Check and fix specific directory
+#   ./scripts/code_quality_check.sh                   # Check everything (no changes)
+#   ./scripts/code_quality_check.sh --fix             # Check and auto-fix everything
+#   ./scripts/code_quality_check.sh scripts/          # Check specific directory
+#   ./scripts/code_quality_check.sh --fix scripts/    # Check and fix specific directory
 
 FIX_MODE=false
 TARGET="."
+PYTHON_TARGET=""
+MD_TARGET=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -23,46 +25,78 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Determine if we're checking Python or Markdown files
+if [[ "$TARGET" == *.py ]]; then
+  PYTHON_TARGET="$TARGET"
+elif [[ "$TARGET" == *.md ]]; then
+  MD_TARGET="$TARGET"
+elif [[ -d "$TARGET" ]] || [[ "$TARGET" == "." ]]; then
+  PYTHON_TARGET="$TARGET"
+  MD_TARGET="$TARGET"
+fi
+
 echo "=== Code Quality Check for: $TARGET ==="
 echo ""
 
 if [ "$FIX_MODE" = true ]; then
   echo "Mode: AUTO-FIX (will modify files)"
-  echo ""
-
-  echo "1. Auto-fixing linting issues..."
-  ruff check --fix "$TARGET"
-
-  echo -e "\n2. Formatting code..."
-  ruff format "$TARGET"
-
-  echo -e "\n3. Checking types..."
-  mypy "$TARGET"
-
-  echo -e "\n=== Done! ==="
 else
   echo "Mode: CHECK ONLY (no changes)"
-  echo ""
+fi
+echo ""
 
-  echo "1. Checking linting..."
-  ruff check "$TARGET"
-  LINT_EXIT=$?
+OVERALL_EXIT=0
 
-  echo -e "\n2. Checking formatting..."
-  ruff format --check "$TARGET"
-  FORMAT_EXIT=$?
+# Python checks
+if [ -n "$PYTHON_TARGET" ]; then
+  echo "=== Python Files ==="
+
+  if [ "$FIX_MODE" = true ]; then
+    echo "1. Auto-fixing linting issues..."
+    ruff check --fix "$PYTHON_TARGET"
+
+    echo -e "\n2. Formatting Python code..."
+    ruff format "$PYTHON_TARGET"
+  else
+    echo "1. Checking linting..."
+    ruff check "$PYTHON_TARGET" || OVERALL_EXIT=1
+
+    echo -e "\n2. Checking formatting..."
+    ruff format --check "$PYTHON_TARGET" || OVERALL_EXIT=1
+  fi
 
   echo -e "\n3. Checking types..."
-  mypy "$TARGET"
-  TYPE_EXIT=$?
+  mypy "$PYTHON_TARGET" || OVERALL_EXIT=1
+  echo ""
+fi
 
-  echo -e "\n=== Summary ==="
-  if [ $LINT_EXIT -eq 0 ] && [ $FORMAT_EXIT -eq 0 ] && [ $TYPE_EXIT -eq 0 ]; then
+# Markdown checks
+if [ -n "$MD_TARGET" ]; then
+  echo "=== Markdown Files ==="
+
+  if [ "$FIX_MODE" = true ]; then
+    echo "1. Formatting Markdown files..."
+    mdformat "$MD_TARGET"
+  else
+    echo "1. Checking Markdown formatting..."
+    mdformat --check "$MD_TARGET" || OVERALL_EXIT=1
+  fi
+
+  echo -e "\n2. Linting Markdown files..."
+  pymarkdown --config .pymarkdown.json scan "$MD_TARGET" || OVERALL_EXIT=1
+  echo ""
+fi
+
+# Summary
+if [ "$FIX_MODE" = true ]; then
+  echo "=== Done! ==="
+else
+  echo "=== Summary ==="
+  if [ $OVERALL_EXIT -eq 0 ]; then
     echo "✓ All checks passed!"
-    exit 0
   else
     echo "✗ Some checks failed."
-    echo "Run './scripts/check.sh --fix $TARGET' to auto-fix."
+    echo "Run './scripts/code_quality_check.sh --fix $TARGET' to auto-fix."
     exit 1
   fi
 fi

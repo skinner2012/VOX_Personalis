@@ -117,33 +117,37 @@ pip install -e ".[dev]"
 
 ### Code Quality Tools
 
-This project uses **Ruff** for formatting and linting, and **mypy** for type checking.
+This project uses:
+- **Python:** Ruff (formatting & linting), mypy (type checking)
+- **Markdown:** mdformat (formatting), pymarkdownlnt (linting)
 
 #### Quick Usage (with venv activated)
 
 ```bash
 # Check code quality (no changes)
-./scripts/code_qaulity_check.sh                     # Everything
-./scripts/code_qaulity_check.sh scripts/            # Specific directory
-./scripts/code_qaulity_check.sh file.py             # Specific file
+./scripts/code_quality_check.sh                     # Everything (Python + Markdown)
+./scripts/code_quality_check.sh scripts/            # Specific directory
+./scripts/code_quality_check.sh file.py             # Specific Python file
+./scripts/code_quality_check.sh README.md           # Specific Markdown file
 
 # Check and auto-fix issues
-./scripts/code_qaulity_check.sh --fix               # Everything
-./scripts/code_qaulity_check.sh --fix scripts/      # Specific directory
-./scripts/code_qaulity_check.sh --fix file.py       # Specific file
+./scripts/code_quality_check.sh --fix               # Everything
+./scripts/code_quality_check.sh --fix scripts/      # Specific directory
+./scripts/code_quality_check.sh --fix file.py       # Specific file
 ```
 
 #### Direct Tool Usage
 
 ```bash
-# Format code
-ruff format .
+# Python
+ruff format .                    # Format Python code
+ruff check --fix .               # Lint and auto-fix
+mypy scripts/                    # Type check
 
-# Lint and auto-fix
-ruff check --fix .
-
-# Type check
-mypy scripts/
+# Markdown
+mdformat .                       # Format Markdown files
+mdformat --check .               # Check Markdown formatting
+pymarkdown scan .                # Lint Markdown files
 ```
 
 ---

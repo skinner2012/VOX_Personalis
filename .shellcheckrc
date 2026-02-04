@@ -1,0 +1,10 @@
+# ShellCheck configuration for VOX Personalis project
+# See: https://github.com/koalaman/shellcheck/wiki/Directive
+
+# Enable all optional checks for comprehensive analysis
+enable=all
+
+# Disable specific checks if needed (currently none disabled)
+# Uncomment lines below to disable specific warnings:
+# disable=SC2086  # Double quote to prevent word splitting/globbing
+# disable=SC1091  # Not following sourced files (can't be analyzed)

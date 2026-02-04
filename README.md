@@ -128,15 +128,17 @@ This project uses:
 
 - **Python:** Ruff (formatting & linting), mypy (type checking)
 - **Markdown:** mdformat (formatting), pymarkdownlnt (linting)
+- **Shell Scripts:** shfmt (formatting), ShellCheck (linting)
 
 #### Quick Usage (with venv activated)
 
 ```bash
 # Check code quality (no changes)
-./scripts/code_quality_check.sh                     # Everything (Python + Markdown)
+./scripts/code_quality_check.sh                     # Everything
 ./scripts/code_quality_check.sh scripts/            # Specific directory
 ./scripts/code_quality_check.sh file.py             # Specific Python file
 ./scripts/code_quality_check.sh README.md           # Specific Markdown file
+./scripts/code_quality_check.sh script.sh           # Specific shell script
 
 # Check and auto-fix issues
 ./scripts/code_quality_check.sh --fix               # Everything
@@ -156,6 +158,11 @@ mypy scripts/                    # Type check
 mdformat .                       # Format Markdown files
 mdformat --check .               # Check Markdown formatting
 pymarkdown scan .                # Lint Markdown files
+
+# Shell Scripts
+shfmt -i 2 -bn -ci -w .          # Format shell scripts
+shfmt -i 2 -bn -ci -d .          # Check shell script formatting
+shellcheck scripts/*.sh          # Lint shell scripts
 ```
 
 ______________________________________________________________________

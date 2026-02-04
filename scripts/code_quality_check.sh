@@ -10,6 +10,7 @@ FIX_MODE=false
 TARGET="."
 PYTHON_TARGET=""
 MD_TARGET=""
+SHELL_TARGET=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -25,14 +26,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Determine if we're checking Python or Markdown files
+# Determine if we're checking Python, Markdown, or Shell files
 if [[ "$TARGET" == *.py ]]; then
   PYTHON_TARGET="$TARGET"
 elif [[ "$TARGET" == *.md ]]; then
   MD_TARGET="$TARGET"
+elif [[ "$TARGET" == *.sh ]]; then
+  SHELL_TARGET="$TARGET"
 elif [[ -d "$TARGET" ]] || [[ "$TARGET" == "." ]]; then
   PYTHON_TARGET="$TARGET"
   MD_TARGET="$TARGET"
+  SHELL_TARGET="$TARGET"
 fi
 
 echo "=== Code Quality Check for: $TARGET ==="
@@ -84,6 +88,23 @@ if [ -n "$MD_TARGET" ]; then
 
   echo -e "\n2. Linting Markdown files..."
   pymarkdown --config .pymarkdown.json scan "$MD_TARGET" || OVERALL_EXIT=1
+  echo ""
+fi
+
+# Shell script checks
+if [ -n "$SHELL_TARGET" ]; then
+  echo "=== Shell Scripts ==="
+
+  echo "1. Linting shell scripts..."
+  shellcheck "$SHELL_TARGET" || OVERALL_EXIT=1
+
+  if [ "$FIX_MODE" = true ]; then
+    echo -e "\n2. Formatting shell scripts..."
+    shfmt -i 2 -bn -ci -w "$SHELL_TARGET"
+  else
+    echo -e "\n2. Checking shell script formatting..."
+    shfmt -i 2 -bn -ci -d "$SHELL_TARGET" || OVERALL_EXIT=1
+  fi
   echo ""
 fi
 

@@ -244,19 +244,25 @@ def generate_report_md(
 
     manifest = summary["manifest_integrity"]
     lines.append(f"- **Total Rows**: {manifest['num_rows']:,}")
-    lines.append(f"- **Duplicate file_name Entries**: {manifest['duplicate_file_count']:,}")
-    lines.append(f"- **Empty/Null Transcripts**: {manifest['empty_transcript_count']:,}")
-    lines.append(f"- **Empty/Null Filenames**: {manifest['empty_filename_count']:,}")
+
+    # Handle None values from integrity check failures
+    dup_count = manifest['duplicate_file_count']
+    empty_trans_count = manifest['empty_transcript_count']
+    empty_file_count = manifest['empty_filename_count']
+
+    lines.append(f"- **Duplicate file_name Entries**: {dup_count:,}" if dup_count is not None else "- **Duplicate file_name Entries**: N/A (check failed)")
+    lines.append(f"- **Empty/Null Transcripts**: {empty_trans_count:,}" if empty_trans_count is not None else "- **Empty/Null Transcripts**: N/A (check failed)")
+    lines.append(f"- **Empty/Null Filenames**: {empty_file_count:,}" if empty_file_count is not None else "- **Empty/Null Filenames**: N/A (check failed)")
     lines.append("")
 
     # Add warnings if issues found
     issues = []
-    if manifest["duplicate_file_count"] > 0:
-        issues.append(f"⚠️  Found {manifest['duplicate_file_count']} duplicate filenames")
-    if manifest["empty_transcript_count"] > 0:
-        issues.append(f"⚠️  Found {manifest['empty_transcript_count']} empty transcripts")
-    if manifest["empty_filename_count"] > 0:
-        issues.append(f"⚠️  Found {manifest['empty_filename_count']} empty filenames")
+    if dup_count is not None and dup_count > 0:
+        issues.append(f"⚠️  Found {dup_count} duplicate filenames")
+    if empty_trans_count is not None and empty_trans_count > 0:
+        issues.append(f"⚠️  Found {empty_trans_count} empty transcripts")
+    if empty_file_count is not None and empty_file_count > 0:
+        issues.append(f"⚠️  Found {empty_file_count} empty filenames")
 
     if issues:
         lines.append("**Issues Detected**:")

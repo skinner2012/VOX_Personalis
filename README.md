@@ -65,17 +65,41 @@ Deliverables (local, reproducible):
 
 > No audio is modified and no model is trained at this stage.
 
+### S1-M1 — Dataset Versioning (v1)
+
+Goal:
+
+- Create a reproducible, immutable Dataset v1 with deterministic split policy
+  and frozen test set for fair model evaluation.
+
+Specification:
+
+- [`specs/S1-M1-dataset-versioning.md`](specs/S1-M1-dataset-versioning.md)
+
+Key concepts:
+
+- Duration-stratified splitting to prevent evaluation bias
+- Duplicate and temporal leakage detection
+- Test set frozen for future version continuity
+
+Design details:
+
+- [`DATASET-VERSIONING-STRATEGY.md`](DATASET-VERSIONING-STRATEGY.md) (explains
+  dataset version lineage, why v1 is immutable, how to create v2+)
+
 ______________________________________________________________________
 
 ## Repository Structure
 
 ```text
 VOX_Personalis/
-├── specs/          # Authoritative specifications (contract-first)
-├── src/            # Implementation code
-├── scripts/        # CLI / helper scripts
-├── data/           # (Local only; not committed)
-├── out/            # Generated artifacts (gitignored)
+├── specs/                    # Authoritative specifications (contract-first)
+├── dataset-versions/         # Dataset version history (v1, v2, ...)
+├── src/                      # Implementation code
+├── scripts/                  # CLI / helper scripts
+├── data/                     # (Local only; not committed)
+├── out/                      # Generated artifacts (gitignored)
+├── DATASET-VERSIONING-STRATEGY.md
 └── README.md
 ```
 

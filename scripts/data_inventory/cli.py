@@ -59,6 +59,11 @@ Example:
         default="transcript",
         help="Transcript column in manifest (default: transcript)",
     )
+    parser.add_argument(
+        "--timestamp_col",
+        default="timestamp_ms",
+        help="Timestamp column in manifest (default: timestamp_ms). Set to empty string to skip.",
+    )
     parser.add_argument("--encoding", default="utf-8", help="CSV encoding (default: utf-8)")
     parser.add_argument(
         "--seed", type=int, default=42, help="Random seed for reproducibility (default: 42)"
@@ -94,7 +99,12 @@ Example:
 
 
 def process_file(
-    row: pd.Series, data_dir: Path, file_col: str, text_col: str, verbose: bool = False
+    row: pd.Series,
+    data_dir: Path,
+    file_col: str,
+    text_col: str,
+    timestamp_col: str | None = None,
+    verbose: bool = False,
 ) -> dict:
     """
     Process a single manifest row and extract all metadata.
@@ -104,6 +114,7 @@ def process_file(
         data_dir: Path to audio directory
         file_col: Name of file column
         text_col: Name of transcript column
+        timestamp_col: Name of timestamp column (None to skip)
         verbose: Whether to print errors
 
     Returns:
@@ -117,6 +128,10 @@ def process_file(
         "file_name": file_name,
         "manifest_row_index": row.name,
     }
+
+    # Pass through timestamp if column specified and exists
+    if timestamp_col:
+        result["timestamp_ms"] = row.get(timestamp_col)
 
     # Analyze transcript
     transcript_metrics = analyze_transcript(transcript)
@@ -246,9 +261,14 @@ def run_inventory(args: argparse.Namespace) -> int:
     if args.verbose:
         iterator = tqdm(iterator, total=len(manifest_df), desc="Processing files", unit="file")
 
+    # Determine timestamp column (None if empty string)
+    timestamp_col = args.timestamp_col if args.timestamp_col else None
+
     for idx, row in iterator:
         try:
-            result = process_file(row, data_dir, args.file_col, args.text_col, args.verbose)
+            result = process_file(
+                row, data_dir, args.file_col, args.text_col, timestamp_col, args.verbose
+            )
             results.append(result)
         except Exception as e:
             if args.verbose:

@@ -40,7 +40,7 @@ ______________________________________________________________________
 
 ## Milestones
 
-### S1-M0 — Data Inventory & Risk Scan (current)
+### S1-M0 — Data Inventory & Risk Scan
 
 Goal:
 
@@ -57,7 +57,7 @@ Specification:
 
 - [`specs/S1-M0-data-inventory.md`](specs/S1-M0-data-inventory.md)
 
-Deliverables (local, reproducible):
+Key concepts:
 
 - Per-file metadata inventory (CSV)
 - Aggregate dataset summary (JSON)
@@ -71,6 +71,12 @@ Goal:
 
 - Create a reproducible, immutable Dataset v1 with deterministic split policy
   and frozen test set for fair model evaluation.
+
+Key questions:
+
+- How do we create deterministic, reproducible train/val/test splits?
+- How do we detect and handle duplicate or leaked samples?
+- How do we freeze the test set for future version continuity?
 
 Specification:
 
@@ -86,6 +92,30 @@ Design details:
 
 - [`DATASET-VERSIONING-STRATEGY.md`](DATASET-VERSIONING-STRATEGY.md) (explains
   dataset version lineage, why v1 is immutable, how to create v2+)
+
+### S1-M2 — Baseline Model & Offline Evaluation (current)
+
+Goal:
+
+- Establish a non-personalized baseline and stable offline evaluation framework
+  to define the performance floor for Dataset v1.
+
+Key questions:
+
+- How does a generic ASR model behave on this speaker's data?
+- What error patterns emerge before any personalization?
+- Which errors are likely addressable via personalization?
+
+Specification:
+
+- [`specs/S1-M2-baseline-and-offline-evaluation.md`](specs/S1-M2-baseline-and-offline-evaluation.md)
+
+Key concepts:
+
+- Whisper `small.en` as baseline (Euphonia reference point)
+- WER/CER metrics with jiwer normalization
+- Duration-stratified evaluation slices
+- Error pattern analysis for interpretability
 
 ______________________________________________________________________
 
@@ -118,8 +148,8 @@ ______________________________________________________________________
 
 ## Status
 
-- Current phase: **S1-M0 — Data Inventory**
-- Platform: macOS (CPU-only, local execution)
+- Current phase: **S1-M2 — Baseline Model & Offline Evaluation**
+- Platform: macOS (Apple Silicon with MPS acceleration)
 - Data: single-speaker, labeled audio + transcripts (not included in repo)
 
 ______________________________________________________________________

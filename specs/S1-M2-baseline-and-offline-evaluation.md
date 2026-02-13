@@ -536,11 +536,23 @@ ______________________________________________________________________
 | `jiwer`          | ≥3.0      | WER/CER computation     |
 | `pandas`         | ≥2.0      | Data manipulation       |
 | `tqdm`           | ≥4.0      | Progress bars           |
+| `ffmpeg`         | (system)  | Audio decoding          |
 
 ### Installation
 
 ```bash
-pip install openai-whisper jiwer pandas tqdm
+# Install Python dependencies
+pip install -e ".[dev]"
+
+# Install ffmpeg (required by openai-whisper for audio processing)
+# macOS:
+brew install ffmpeg
+
+# Linux (Debian/Ubuntu):
+# sudo apt update && sudo apt install ffmpeg
+
+# Linux (Fedora):
+# sudo dnf install ffmpeg
 ```
 
 ### Whisper Model Download
@@ -564,12 +576,16 @@ ______________________________________________________________________
 
 | Model      | Device | Speed Factor   | 365 test samples (~29 min) |
 | ---------- | ------ | -------------- | -------------------------- |
-| `base.en`  | MPS    | ~10x realtime  | ~3 minutes                 |
-| `small.en` | MPS    | ~5x realtime   | ~6 minutes                 |
-| `small.en` | CPU    | ~0.8x realtime | ~36 minutes                |
 | `base.en`  | CPU    | ~2x realtime   | ~15 minutes                |
+| `small.en` | CPU    | ~0.8x realtime | ~36 minutes                |
+| `base.en`  | MPS    | Variable       | Test first (may be slower) |
+| `small.en` | MPS    | Variable       | Test first (may be slower) |
 
 With both test and val splits (~58 min audio): double the above times.
+
+**Note**: MPS performance is highly system-dependent. On some configurations,
+MPS may be 10-20x slower than CPU due to operator fallbacks. Always test
+`--device cpu` first as the baseline.
 
 ### Memory Requirements
 
@@ -581,7 +597,20 @@ With both test and val splits (~58 min audio): double the above times.
 
 ### Recommendations
 
-- Use MPS (Metal) on Apple Silicon for 5-10x speedup
+- **Device selection (Apple Silicon)**: MPS performance with `openai-whisper`
+  is unreliable due to incomplete PyTorch operator support
+  ([GitHub Issue #258](https://github.com/Vaibhavs10/insanely-fast-whisper/issues/258)).
+  The `aten::repeat_interleave.self_int` operator falls back to CPU, causing
+  10-20x slowdown compared to native CPU inference. **Recommendation: Use
+  `--device cpu` for reliable performance** (~2x realtime with `base.en`,
+  ~0.8x realtime with `small.en`).
+- **Faster alternatives for Apple Silicon**: For production use, consider
+  [whisper.cpp](https://github.com/ggerganov/whisper.cpp) with CoreML (~15x
+  speedup vs PyTorch CPU) or
+  [Apple MLX](https://github.com/ml-explore/mlx-examples/tree/main/whisper)
+  with Metal acceleration. However, `openai-whisper` is recommended for this
+  project to enable future fine-tuning.
 - Batch size 1 is optimal (Whisper processes full utterances)
 - For quick debugging, use `base.en` with `--splits test`
-- For final baseline, use `small.en` with `--splits test,val`
+- For final baseline, use `base.en` or `small.en` with `--splits test,val`
+  depending on runtime constraints

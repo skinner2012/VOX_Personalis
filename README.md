@@ -124,9 +124,10 @@ ______________________________________________________________________
 ```text
 VOX_Personalis/
 ├── specs/                    # Authoritative specifications (contract-first)
-├── dataset-versions/         # Dataset version history (v1, v2, ...)
-├── src/                      # Implementation code
-├── scripts/                  # CLI / helper scripts
+├── scripts/
+│   ├── data_inventory/       # S1-M0: Data inventory CLI
+│   ├── dataset_versioning/   # S1-M1: Dataset versioning CLI
+│   └── baseline_eval/        # S1-M2: Baseline evaluation CLI
 ├── data/                     # (Local only; not committed)
 ├── out/                      # Generated artifacts (gitignored)
 ├── DATASET-VERSIONING-STRATEGY.md
@@ -166,6 +167,16 @@ source venv/bin/activate  # On macOS/Linux
 # OR
 venv\Scripts\activate  # On Windows
 ```
+
+#### **Install system dependencies:**
+
+```bash
+# macOS (required for S1-M2 baseline evaluation)
+brew install ffmpeg
+```
+
+> **Note:** `ffmpeg` is required by Whisper for audio processing. On Linux, use
+> `sudo apt install ffmpeg` (Debian/Ubuntu) or `sudo dnf install ffmpeg` (Fedora).
 
 #### **Install the project with development dependencies:**
 

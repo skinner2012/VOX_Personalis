@@ -125,7 +125,7 @@ def transcribe_samples(
 
     iterator = df.iterrows()
     if verbose:
-        iterator = tqdm(iterator, total=len(df), desc="Transcribing", unit="sample")
+        iterator = tqdm(iterator, total=len(df), desc="Transcribing", unit="sample")  # type: ignore[assignment]
 
     for _, row in iterator:
         audio_path = row["audio_path_resolved"]

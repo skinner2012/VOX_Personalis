@@ -1,8 +1,6 @@
-"""Entry point for python -m scripts.baseline_eval"""
+"""Entry point for baseline_eval module: python -m baseline_eval"""
 
-import sys
-
-from .cli import main
+from baseline_eval.cli import main
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

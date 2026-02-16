@@ -4,16 +4,16 @@ from collections.abc import Callable
 
 import pandas as pd
 import torch
+
+# Reuse metrics from S1-M2 baseline
+from baseline_eval.metrics import (
+    compute_sample_cer,
+    compute_sample_wer,
+)
 from datasets import Dataset  # type: ignore[import-untyped]
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import WhisperProcessor
-
-# Reuse metrics from S1-M2 baseline
-from scripts.baseline_eval.metrics import (
-    compute_sample_cer,
-    compute_sample_wer,
-)
 
 
 def run_inference(

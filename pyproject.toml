@@ -31,12 +31,9 @@ dev = [
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = []  # No Python modules to install, just scripts
-
 [tool.setuptools.packages.find]
-where = ["."]
-include = []  # Don't auto-discover packages
+where = ["scripts"]
+include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "fine_tuning*"]
 
 [tool.ruff]
 line-length = 100
@@ -63,6 +60,15 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Set to true for stricter checking
+mypy_path = "scripts"
+explicit_package_bases = true
+
+# HuggingFace libraries do not ship type stubs or py.typed markers
+# See: https://github.com/huggingface/transformers/issues/14833
+[[tool.mypy.overrides]]
+module = ["datasets", "transformers", "transformers.*", "peft", "peft.*"]
+ignore_missing_imports = true
+follow_untyped_imports = false
 
 [tool.mdformat]
 wrap = "keep"  # Preserve existing line wrapping

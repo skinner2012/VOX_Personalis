@@ -1,10 +1,9 @@
 """Model loading and LoRA configuration."""
 
+# Reuse device detection from S1-M2
+from baseline_eval.inference import get_available_device
 from peft import LoraConfig, PeftModel, get_peft_model
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
-
-# Reuse device detection from S1-M2
-from scripts.baseline_eval.inference import get_available_device
 
 # Map shorthand names to HuggingFace model IDs
 MODEL_MAPPING: dict[str, str] = {

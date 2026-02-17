@@ -93,7 +93,7 @@ Design details:
 - [`DATASET-VERSIONING-STRATEGY.md`](DATASET-VERSIONING-STRATEGY.md) (explains
   dataset version lineage, why v1 is immutable, how to create v2+)
 
-### S1-M2 — Baseline Model & Offline Evaluation (current)
+### S1-M2 — Baseline Model & Offline Evaluation
 
 Goal:
 
@@ -117,6 +117,45 @@ Key concepts:
 - Duration-stratified evaluation slices
 - Error pattern analysis for interpretability
 
+### S1-M3 — Personalization & Fine-Tuning
+
+Goal:
+
+- Fine-tune Whisper using LoRA to achieve measurable WER improvement
+  on this Deaf speaker's voice.
+
+Key questions:
+
+- Does LoRA fine-tuning improve transcription accuracy for this speaker?
+- What is the optimal LoRA rank (r=8 vs r=16)?
+- What decoding configuration yields best results?
+- Does the model generalize from validation to test set?
+
+Specification:
+
+- [`specs/S1-M3-personalization-fine-tuning.md`](specs/S1-M3-personalization-fine-tuning.md)
+
+Key concepts:
+
+- LoRA (Low-Rank Adaptation) for parameter-efficient fine-tuning
+- HuggingFace Trainer + PEFT library
+- Systematic ablation: LoRA rank, decoding parameters
+- Single-shot test evaluation with audit trail enforcement
+
+Results:
+
+| Metric   | Baseline | Fine-tuned | Improvement |
+| -------- | -------- | ---------- | ----------- |
+| Test WER | 238.69%  | 66.41%     | **72.2%**   |
+| Test CER | -        | 50.75%     | -           |
+
+Key findings:
+
+- **LoRA r=16** outperformed r=8 by ~9 pts on validation
+- **Decoding matters**: beam=5, temp=0.0 yields best results
+- **Excellent generalization**: Val-to-test gap only 1.63 pts
+- **Model is usable**: WER reduced from ~2.4x reference to ~0.66x reference
+
 ______________________________________________________________________
 
 ## Repository Structure
@@ -127,7 +166,8 @@ VOX_Personalis/
 ├── scripts/
 │   ├── data_inventory/       # S1-M0: Data inventory CLI
 │   ├── dataset_versioning/   # S1-M1: Dataset versioning CLI
-│   └── baseline_eval/        # S1-M2: Baseline evaluation CLI
+│   ├── baseline_eval/        # S1-M2: Baseline evaluation CLI
+│   └── fine_tuning/          # S1-M3: LoRA fine-tuning CLI
 ├── data/                     # (Local only; not committed)
 ├── out/                      # Generated artifacts (gitignored)
 ├── DATASET-VERSIONING-STRATEGY.md
@@ -149,8 +189,9 @@ ______________________________________________________________________
 
 ## Status
 
-- Current phase: **S1-M2 — Baseline Model & Offline Evaluation**
-- Platform: macOS (Apple Silicon with MPS acceleration)
+- Latest milestone: **S1-M3 — Personalization & Fine-Tuning** (complete)
+- Latest result: **72.2% relative WER improvement** (238.69% → 66.41%)
+- Platform: macOS (Apple Silicon, CPU training)
 - Data: single-speaker, labeled audio + transcripts (not included in repo)
 
 ______________________________________________________________________

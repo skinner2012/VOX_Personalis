@@ -31,7 +31,7 @@ def compute_hashes_for_dataframe(df: pd.DataFrame, verbose: bool = False) -> pd.
 
     iterator = df.iterrows()
     if verbose:
-        iterator = tqdm(iterator, total=len(df), desc="Computing hashes", unit="file")
+        iterator = tqdm(iterator, total=len(df), desc="Computing hashes", unit="file")  # type: ignore[assignment]
 
     for _, row in iterator:
         audio_path = Path(row["audio_path_resolved"])

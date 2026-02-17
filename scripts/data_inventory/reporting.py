@@ -28,13 +28,13 @@ def compute_histogram(values: list[float | None], bins: list[float]) -> dict[str
             return {}
 
         # Filter out None and NaN values
-        values = [v for v in values if v is not None and not pd.isna(v)]
+        filtered_values = [v for v in values if v is not None and not pd.isna(v)]
 
-        if not values:
+        if not filtered_values:
             return {}
 
         # Use pandas cut to bin values
-        binned = pd.cut(values, bins=bins, include_lowest=True)
+        binned = pd.cut(filtered_values, bins=bins, include_lowest=True)
         counts = binned.value_counts().sort_index()
 
         # Convert to dict with string keys
@@ -81,16 +81,20 @@ def generate_summary_json(
     # Audio distributions
     sample_rate_distribution = file_metadata["sample_rate_hz"].value_counts().to_dict()
     sample_rate_distribution = {
-        str(k): int(v) for k, v in sample_rate_distribution.items() if pd.notna(k)
+        str(k): int(v)
+        for k, v in sample_rate_distribution.items()
+        if pd.notna(k)  # type: ignore[call-overload]
     }
 
     channels_distribution = file_metadata["channels"].value_counts().to_dict()
     channels_distribution = {
-        str(k): int(v) for k, v in channels_distribution.items() if pd.notna(k)
+        str(k): int(v)
+        for k, v in channels_distribution.items()
+        if pd.notna(k)  # type: ignore[call-overload]
     }
 
     format_distribution = file_metadata["format"].value_counts().to_dict()
-    format_distribution = {str(k): int(v) for k, v in format_distribution.items() if pd.notna(k)}
+    format_distribution = {str(k): int(v) for k, v in format_distribution.items() if pd.notna(k)}  # type: ignore[call-overload]
 
     read_failure_count = int((~file_metadata["audio_read_ok"]).sum())
     missing_file_count = int((~file_metadata["audio_exists"]).sum())
@@ -246,13 +250,25 @@ def generate_report_md(
     lines.append(f"- **Total Rows**: {manifest['num_rows']:,}")
 
     # Handle None values from integrity check failures
-    dup_count = manifest['duplicate_file_count']
-    empty_trans_count = manifest['empty_transcript_count']
-    empty_file_count = manifest['empty_filename_count']
+    dup_count = manifest["duplicate_file_count"]
+    empty_trans_count = manifest["empty_transcript_count"]
+    empty_file_count = manifest["empty_filename_count"]
 
-    lines.append(f"- **Duplicate file_name Entries**: {dup_count:,}" if dup_count is not None else "- **Duplicate file_name Entries**: N/A (check failed)")
-    lines.append(f"- **Empty/Null Transcripts**: {empty_trans_count:,}" if empty_trans_count is not None else "- **Empty/Null Transcripts**: N/A (check failed)")
-    lines.append(f"- **Empty/Null Filenames**: {empty_file_count:,}" if empty_file_count is not None else "- **Empty/Null Filenames**: N/A (check failed)")
+    lines.append(
+        f"- **Duplicate file_name Entries**: {dup_count:,}"
+        if dup_count is not None
+        else "- **Duplicate file_name Entries**: N/A (check failed)"
+    )
+    lines.append(
+        f"- **Empty/Null Transcripts**: {empty_trans_count:,}"
+        if empty_trans_count is not None
+        else "- **Empty/Null Transcripts**: N/A (check failed)"
+    )
+    lines.append(
+        f"- **Empty/Null Filenames**: {empty_file_count:,}"
+        if empty_file_count is not None
+        else "- **Empty/Null Filenames**: N/A (check failed)"
+    )
     lines.append("")
 
     # Add warnings if issues found

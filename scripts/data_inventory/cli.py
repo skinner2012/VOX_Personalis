@@ -259,7 +259,7 @@ def run_inventory(args: argparse.Namespace) -> int:
     iterator = manifest_df.iterrows()
 
     if args.verbose:
-        iterator = tqdm(iterator, total=len(manifest_df), desc="Processing files", unit="file")
+        iterator = tqdm(iterator, total=len(manifest_df), desc="Processing files", unit="file")  # type: ignore[assignment]
 
     # Determine timestamp column (None if empty string)
     timestamp_col = args.timestamp_col if args.timestamp_col else None

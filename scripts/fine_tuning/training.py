@@ -73,6 +73,7 @@ def create_training_args(config: TrainingConfig) -> Seq2SeqTrainingArguments:
         metric_for_best_model="wer",
         greater_is_better=False,
         # Hardware
+        use_cpu=config.device == "cpu",  # Force CPU when specified
         fp16=config.fp16,
         # Generation settings for Whisper
         predict_with_generate=True,

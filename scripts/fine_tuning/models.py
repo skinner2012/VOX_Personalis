@@ -78,7 +78,7 @@ def apply_lora(
         lora_alpha=alpha,
         lora_dropout=dropout,
         target_modules=target_modules,
-        task_type="AUTOMATIC_SPEECH_RECOGNITION",
+        task_type="SEQ_2_SEQ_LM",  # Whisper is encoder-decoder (seq2seq)
     )
 
     # Wrap model with PEFT

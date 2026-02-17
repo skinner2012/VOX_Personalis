@@ -7,10 +7,7 @@
 #   ./scripts/code_quality_check.sh --fix scripts/    # Check and fix specific directory
 
 FIX_MODE=false
-TARGET="."
-PYTHON_TARGET=""
-MD_TARGET=""
-SHELL_TARGET=""
+TARGETS=()
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -20,26 +17,37 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      TARGET="$1"
+      TARGETS+=("$1")
       shift
       ;;
   esac
 done
 
-# Determine if we're checking Python, Markdown, or Shell files
-if [[ "${TARGET}" == *.py ]]; then
-  PYTHON_TARGET="${TARGET}"
-elif [[ "${TARGET}" == *.md ]]; then
-  MD_TARGET="${TARGET}"
-elif [[ "${TARGET}" == *.sh ]]; then
-  SHELL_TARGET="${TARGET}"
-elif [[ -d "${TARGET}" ]] || [[ "${TARGET}" == "." ]]; then
-  PYTHON_TARGET="${TARGET}"
-  MD_TARGET="${TARGET}"
-  SHELL_TARGET="${TARGET}"
+# If no targets specified, default to current directory
+if [[ ${#TARGETS[@]} -eq 0 ]]; then
+  TARGETS=(".")
 fi
 
-echo "=== Code Quality Check for: ${TARGET} ==="
+# Categorize targets by type
+PYTHON_TARGETS=()
+MD_TARGETS=()
+SHELL_TARGETS=()
+
+for target in "${TARGETS[@]}"; do
+  if [[ "${target}" == *.py ]]; then
+    PYTHON_TARGETS+=("${target}")
+  elif [[ "${target}" == *.md ]]; then
+    MD_TARGETS+=("${target}")
+  elif [[ "${target}" == *.sh ]]; then
+    SHELL_TARGETS+=("${target}")
+  elif [[ -d "${target}" ]] || [[ "${target}" == "." ]]; then
+    PYTHON_TARGETS+=("${target}")
+    MD_TARGETS+=("${target}")
+    SHELL_TARGETS+=("${target}")
+  fi
+done
+
+echo "=== Code Quality Check for: ${TARGETS[*]} ==="
 echo ""
 
 if [[ "${FIX_MODE}" = true ]]; then
@@ -52,58 +60,73 @@ echo ""
 OVERALL_EXIT=0
 
 # Python checks
-if [[ -n "${PYTHON_TARGET}" ]]; then
+if [[ ${#PYTHON_TARGETS[@]} -gt 0 ]]; then
   echo "=== Python Files ==="
 
   if [[ "${FIX_MODE}" = true ]]; then
     echo "1. Auto-fixing linting issues..."
-    ruff check --fix "${PYTHON_TARGET}"
+    ruff check --fix "${PYTHON_TARGETS[@]}"
 
     echo -e "\n2. Formatting Python code..."
-    ruff format "${PYTHON_TARGET}"
+    ruff format "${PYTHON_TARGETS[@]}"
   else
     echo "1. Checking linting..."
-    ruff check "${PYTHON_TARGET}" || OVERALL_EXIT=1
+    ruff check "${PYTHON_TARGETS[@]}" || OVERALL_EXIT=1
 
     echo -e "\n2. Checking formatting..."
-    ruff format --check "${PYTHON_TARGET}" || OVERALL_EXIT=1
+    ruff format --check "${PYTHON_TARGETS[@]}" || OVERALL_EXIT=1
   fi
 
   echo -e "\n3. Checking types..."
-  mypy "${PYTHON_TARGET}" || OVERALL_EXIT=1
+  mypy "${PYTHON_TARGETS[@]}" || OVERALL_EXIT=1
   echo ""
 fi
 
 # Markdown checks
-if [[ -n "${MD_TARGET}" ]]; then
+if [[ ${#MD_TARGETS[@]} -gt 0 ]]; then
   echo "=== Markdown Files ==="
 
   if [[ "${FIX_MODE}" = true ]]; then
     echo "1. Formatting Markdown files..."
-    mdformat "${MD_TARGET}"
+    mdformat "${MD_TARGETS[@]}"
   else
     echo "1. Checking Markdown formatting..."
-    mdformat --check "${MD_TARGET}" || OVERALL_EXIT=1
+    mdformat --check "${MD_TARGETS[@]}" || OVERALL_EXIT=1
   fi
 
   echo -e "\n2. Linting Markdown files..."
-  pymarkdown --config .pymarkdown.json scan "${MD_TARGET}" || OVERALL_EXIT=1
+  pymarkdown --config .pymarkdown.json scan "${MD_TARGETS[@]}" || OVERALL_EXIT=1
   echo ""
 fi
 
 # Shell script checks
-if [[ -n "${SHELL_TARGET}" ]]; then
+if [[ ${#SHELL_TARGETS[@]} -gt 0 ]]; then
   echo "=== Shell Scripts ==="
 
-  echo "1. Linting shell scripts..."
-  shellcheck "${SHELL_TARGET}" || OVERALL_EXIT=1
+  # Note: shellcheck doesn't handle directories, so find .sh files if target is a directory
+  SHELL_FILES=()
+  for target in "${SHELL_TARGETS[@]}"; do
+    if [[ -d "${target}" ]]; then
+      # Find all .sh files in directory (Bash 3.2 compatible)
+      while IFS= read -r file; do
+        SHELL_FILES+=("${file}")
+      done < <(find "${target}" -type f -name "*.sh")
+    else
+      SHELL_FILES+=("${target}")
+    fi
+  done
+
+  if [[ ${#SHELL_FILES[@]} -gt 0 ]]; then
+    echo "1. Linting shell scripts..."
+    shellcheck "${SHELL_FILES[@]}" || OVERALL_EXIT=1
+  fi
 
   if [[ "${FIX_MODE}" = true ]]; then
     echo -e "\n2. Formatting shell scripts..."
-    shfmt -i 2 -bn -ci -w "${SHELL_TARGET}"
+    shfmt -i 2 -bn -ci -w "${SHELL_TARGETS[@]}"
   else
     echo -e "\n2. Checking shell script formatting..."
-    shfmt -i 2 -bn -ci -d "${SHELL_TARGET}" || OVERALL_EXIT=1
+    shfmt -i 2 -bn -ci -d "${SHELL_TARGETS[@]}" || OVERALL_EXIT=1
   fi
   echo ""
 fi
@@ -117,7 +140,7 @@ else
     echo "✓ All checks passed!"
   else
     echo "✗ Some checks failed."
-    echo "Run './scripts/code_quality_check.sh --fix ${TARGET}' to auto-fix."
+    echo "Run './scripts/code_quality_check.sh --fix ${TARGETS[*]}' to auto-fix."
     exit 1
   fi
 fi

@@ -150,6 +150,20 @@ Examples:
         help="Path to baseline_predictions.csv for error-type slicing",
     )
 
+    # Decoding parameters
+    parser.add_argument(
+        "--beam_size",
+        type=int,
+        default=1,
+        help="Beam size for decoding (1=greedy, default: 1)",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.0,
+        help="Sampling temperature (0.0=deterministic, default: 0.0)",
+    )
+
     # Logging
     parser.add_argument(
         "-v",
@@ -320,6 +334,8 @@ def run_training_pipeline(args: argparse.Namespace) -> int:
         split="val",
         device=actual_device,
         verbose=verbose,
+        beam_size=args.beam_size,
+        temperature=args.temperature,
     )
 
     # Determine baseline predictions path for error-type slicing
@@ -511,6 +527,8 @@ def run_eval_only_pipeline(args: argparse.Namespace) -> int:
         split=args.eval_split,
         device=actual_device,
         verbose=verbose,
+        beam_size=args.beam_size,
+        temperature=args.temperature,
     )
 
     # Generate predictions CSV

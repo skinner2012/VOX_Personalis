@@ -23,6 +23,8 @@ def run_inference(
     normalizer: Callable[[str], str],
     device: str = "cpu",
     verbose: bool = True,
+    beam_size: int = 1,
+    temperature: float = 1.0,
 ) -> pd.DataFrame:
     """
     Run inference on dataset and return predictions DataFrame.
@@ -34,6 +36,8 @@ def run_inference(
         normalizer: Text normalization function
         device: Device to run on
         verbose: Whether to show progress bar
+        beam_size: Number of beams for beam search (1 = greedy)
+        temperature: Sampling temperature (0.0 = deterministic)
 
     Returns:
         DataFrame with predictions and metadata
@@ -43,6 +47,22 @@ def run_inference(
     results = []
     iterator = tqdm(range(len(dataset)), desc="Inference") if verbose else range(len(dataset))
 
+    # Build generation kwargs
+    gen_kwargs: dict = {
+        "max_length": 225,
+        "num_beams": beam_size,
+    }
+
+    # Temperature handling: 0.0 means deterministic (greedy/beam), >0 enables sampling
+    if temperature == 0.0:
+        gen_kwargs["do_sample"] = False
+    else:
+        gen_kwargs["do_sample"] = True
+        gen_kwargs["temperature"] = temperature
+
+    if verbose:
+        print(f"  Decoding: beam_size={beam_size}, temperature={temperature}")
+
     for idx in iterator:
         sample = dataset[idx]
 
@@ -51,12 +71,11 @@ def run_inference(
         input_features = input_features.to(device)
 
         # Generate transcription
-        # Note: Don't pass language/task - English-only models reject them,
-        # and multilingual models default to English transcription anyway
+        # Note: language/task locked by forced_decoder_ids in English-only models
         with torch.no_grad():
             generated_ids = model.generate(
                 input_features=input_features,  # PEFT models require keyword args
-                max_length=225,
+                **gen_kwargs,
             )
 
         # Decode
@@ -223,6 +242,8 @@ def run_full_evaluation(
     split: str,
     device: str = "cpu",
     verbose: bool = True,
+    beam_size: int = 1,
+    temperature: float = 1.0,
 ) -> tuple[pd.DataFrame, dict]:
     """
     Run full evaluation pipeline.
@@ -237,6 +258,8 @@ def run_full_evaluation(
         split: Split being evaluated
         device: Device to run on
         verbose: Show progress
+        beam_size: Number of beams for beam search
+        temperature: Sampling temperature
 
     Returns:
         Tuple of (predictions_df, evaluation_metrics)
@@ -252,6 +275,8 @@ def run_full_evaluation(
         normalizer=normalizer,
         device=device,
         verbose=verbose,
+        beam_size=beam_size,
+        temperature=temperature,
     )
 
     # Compute metrics

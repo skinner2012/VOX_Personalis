@@ -307,6 +307,9 @@ def run_training_pipeline(args: argparse.Namespace) -> int:
     if verbose:
         print("\n=== Phase 5: Evaluation ===")
 
+    # Ensure model is on correct device (Trainer may have moved it)
+    model = model.to(actual_device)
+
     predictions_df, eval_results = run_full_evaluation(
         model=model,
         processor=processor,
@@ -319,7 +322,7 @@ def run_training_pipeline(args: argparse.Namespace) -> int:
         verbose=verbose,
     )
 
-    # Add error-type classification if baseline predictions available
+    # Determine baseline predictions path for error-type slicing
     baseline_pred_path = args.baseline_predictions
     if not baseline_pred_path:
         # Try to find it automatically
@@ -328,19 +331,20 @@ def run_training_pipeline(args: argparse.Namespace) -> int:
         if auto_path.exists():
             baseline_pred_path = str(auto_path)
 
-    if baseline_pred_path:
+    # Compute slice metrics (this handles error-type classification internally)
+    slice_metrics = compute_all_slice_metrics(
+        predictions_df,
+        baseline_pred_path,
+    )
+
+    # If error-type slices were computed, add the classification to predictions_df for CSV output
+    if baseline_pred_path and slice_metrics.get("by_error_type"):
         try:
             baseline_pred_df = load_baseline_predictions(baseline_pred_path)
             predictions_df = add_error_type_classification(predictions_df, baseline_pred_df)
         except Exception as e:
             if verbose:
-                print(f"WARNING: Could not load baseline predictions: {e}")
-
-    # Compute slice metrics
-    slice_metrics = compute_all_slice_metrics(
-        predictions_df,
-        baseline_pred_path,
-    )
+                print(f"WARNING: Could not add error types to predictions: {e}")
 
     # Generate outputs
     if verbose:

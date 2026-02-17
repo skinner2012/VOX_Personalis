@@ -51,12 +51,12 @@ def run_inference(
         input_features = input_features.to(device)
 
         # Generate transcription
+        # Note: Don't pass language/task - English-only models reject them,
+        # and multilingual models default to English transcription anyway
         with torch.no_grad():
             generated_ids = model.generate(
-                input_features,
+                input_features=input_features,  # PEFT models require keyword args
                 max_length=225,
-                language="en",
-                task="transcribe",
             )
 
         # Decode

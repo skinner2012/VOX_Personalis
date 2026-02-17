@@ -3,8 +3,9 @@
 from collections.abc import Callable
 from pathlib import Path
 
+import librosa
 import pandas as pd
-from datasets import Audio, Dataset
+from datasets import Dataset
 from transformers import DataCollatorForSeq2Seq, WhisperProcessor
 
 
@@ -57,19 +58,18 @@ def load_manifest(manifest_path: str | Path, split: str) -> pd.DataFrame:
 
 def create_hf_dataset(df: pd.DataFrame) -> Dataset:
     """
-    Convert pandas DataFrame to HuggingFace Dataset with Audio column.
+    Convert pandas DataFrame to HuggingFace Dataset.
 
     Args:
         df: DataFrame with audio_path_resolved column
 
     Returns:
-        HuggingFace Dataset with Audio column type for lazy loading
+        HuggingFace Dataset (audio loaded lazily during preprocessing)
     """
     # Convert to HF Dataset
+    # Note: We load audio manually in preprocess_function to avoid
+    # casting issues with large_string -> Audio struct
     dataset = Dataset.from_pandas(df, preserve_index=False)
-
-    # Cast audio column to Audio type (enables lazy loading at 16kHz)
-    dataset = dataset.cast_column("audio_path_resolved", Audio(sampling_rate=16000))
 
     return dataset
 
@@ -95,13 +95,14 @@ def prepare_dataset(
 
     def preprocess_function(batch):
         """Process a batch of samples."""
-        # Load audio (handled by datasets.Audio)
-        audio = batch["audio_path_resolved"]
+        # Load audio with librosa (Whisper expects 16kHz)
+        audio_path = batch["audio_path_resolved"]
+        audio_array, sr = librosa.load(audio_path, sr=16000)
 
         # Extract mel spectrogram features
         input_features = processor.feature_extractor(
-            audio["array"],
-            sampling_rate=audio["sampling_rate"],
+            audio_array,
+            sampling_rate=sr,
         ).input_features[0]
 
         # Normalize transcript (same as S1-M2 baseline)

@@ -126,6 +126,7 @@ def setup_model_and_processor(
     model_name: str,
     lora_rank: int,
     device: str = "cpu",
+    lora_dropout: float = 0.1,
 ) -> tuple[PeftModel, WhisperProcessor, str]:
     """
     Load Whisper model, apply LoRA, and load processor.
@@ -134,6 +135,7 @@ def setup_model_and_processor(
         model_name: HuggingFace model ID
         lora_rank: LoRA rank (8 or 16)
         device: Target device
+        lora_dropout: LoRA dropout rate (default: 0.1; B2 experiment uses 0.15)
 
     Returns:
         Tuple of (lora_model, processor, actual_device)
@@ -148,7 +150,7 @@ def setup_model_and_processor(
     base_model, actual_device = load_whisper_model(model_id, device)
 
     # Apply LoRA
-    lora_model = apply_lora(base_model, rank=lora_rank)
+    lora_model = apply_lora(base_model, rank=lora_rank, dropout=lora_dropout)
 
     # Print trainable params
     print_trainable_params(lora_model)

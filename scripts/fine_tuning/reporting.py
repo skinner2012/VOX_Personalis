@@ -368,3 +368,225 @@ def generate_report_md(
         f.write("\n".join(lines))
 
     return output_path
+
+
+# ---------------------------------------------------------------------------
+# Controlled experiment output writers
+# ---------------------------------------------------------------------------
+
+
+def write_frozen_config(out_dir: str | Path, config: dict) -> Path:
+    """
+    Write per-experiment frozen_config.json for reproducibility.
+
+    Args:
+        out_dir: Experiment output directory
+        config: Full reproducible state of the run
+
+    Returns:
+        Path to written file
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "frozen_config.json"
+    with open(path, "w") as f:
+        json.dump(config, f, indent=2)
+    return path
+
+
+def generate_v1_1_predictions_csv(
+    out_dir: str | Path,
+    v1_pred_df: pd.DataFrame,
+    v1_1_pred_df: pd.DataFrame,
+) -> Path:
+    """
+    Generate side-by-side val predictions CSV for Model v1 vs v1.1.
+
+    Columns per spec: file_name, pair_sha256, duration_sec, duration_bin,
+    ref_norm, hyp_v1_norm, hyp_v1_1_norm, wer_v1, wer, cer, improvement.
+
+    Args:
+        v1_pred_df: Model v1 val predictions (must include pair_sha256, hypothesis, wer)
+        v1_1_pred_df: Model v1.1 val predictions (same schema)
+
+    Returns:
+        Path to written file
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Merge on pair_sha256
+    merged = v1_1_pred_df.copy().reset_index(drop=True)
+    v1_lookup = v1_pred_df.set_index("pair_sha256")[["hypothesis", "wer"]]
+
+    merged["hyp_v1_norm"] = merged["pair_sha256"].map(v1_lookup["hypothesis"])
+    merged["wer_v1"] = merged["pair_sha256"].map(v1_lookup["wer"])
+    merged["improvement"] = (merged["wer_v1"] - merged["wer"]).round(4)
+
+    output_cols = [
+        "file_name",
+        "pair_sha256",
+        "duration_sec",
+        "duration_bin",
+        "reference",  # ref_norm
+        "hyp_v1_norm",
+        "hypothesis",  # hyp_v1_1_norm
+        "wer_v1",
+        "wer",
+        "cer",
+        "improvement",
+    ]
+    # Rename to match spec column names
+    result = merged[[c for c in output_cols if c in merged.columns]].rename(
+        columns={"reference": "ref_norm", "hypothesis": "hyp_v1_1_norm"}
+    )
+
+    path = out_dir / "model_v1.1_val_predictions.csv"
+    result.to_csv(path, index=False)
+    return path
+
+
+def generate_v1_1_metrics_json(
+    out_dir: str | Path,
+    v1_1_metrics: dict,
+    included_experiments: list[str],
+    model_v1_val_wer: float,
+    model_v1_checkpoint: str,
+    lora_rank: int,
+) -> Path:
+    """
+    Generate model_v1.1_metrics.json per spec schema.
+
+    Returns:
+        Path to written file
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    agg = v1_1_metrics.get("aggregate", {})
+    wer = agg.get("wer", 0.0)
+    abs_improvement = model_v1_val_wer - wer
+    rel_improvement = (abs_improvement / model_v1_val_wer * 100) if model_v1_val_wer > 0 else 0.0
+
+    metrics = {
+        "model_version": "v1.1",
+        "base_model": "whisper-base.en",
+        "experiments_included": included_experiments,
+        "model_v1_reference": {
+            "checkpoint_path": model_v1_checkpoint,
+            "val_wer": round(model_v1_val_wer, 4),
+            "lora_rank": lora_rank,
+        },
+        "val_results": {
+            "wer": round(wer, 4),
+            "cer": round(agg.get("cer", 0.0), 4),
+            "absolute_improvement_pts": round(abs_improvement, 4),
+            "relative_improvement_pct": round(rel_improvement, 2),
+        },
+        "by_duration_bin": v1_1_metrics.get("by_duration_bin", {}),
+        "by_error_type": v1_1_metrics.get("by_error_type", {}),
+        "created_timestamp": datetime.now(UTC).isoformat(),
+    }
+
+    path = out_dir / "model_v1.1_metrics.json"
+    with open(path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    return path
+
+
+def write_included_experiments(
+    out_dir: str | Path,
+    experiments: list[str],
+) -> Path:
+    """
+    Write included_experiments.json listing which experiments are in v1.1.
+
+    Returns:
+        Path to written file
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "included_experiments.json"
+    with open(path, "w") as f:
+        json.dump(experiments, f, indent=2)
+    return path
+
+
+def generate_improvement_analysis_report(
+    out_dir: str | Path,
+    experiment_log_entries: list[dict],
+    model_v1_val_wer: float,
+    v1_1_val_wer: float,
+    included_experiments: list[str],
+) -> Path:
+    """
+    Generate improvement_analysis_report.md per spec sections.
+
+    Returns:
+        Path to written file
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    abs_improvement = model_v1_val_wer - v1_1_val_wer
+    rel_improvement = (abs_improvement / model_v1_val_wer * 100) if model_v1_val_wer > 0 else 0.0
+
+    lines = [
+        "# Improvement Analysis Report",
+        "",
+        f"Generated: {datetime.now(UTC).isoformat()}",
+        "",
+        "---",
+        "",
+        "## 1. Executive Summary",
+        "",
+        f"- Model v1 val WER: **{model_v1_val_wer:.2%}**",
+        f"- Model v1.1 val WER: **{v1_1_val_wer:.2%}**",
+        f"- Absolute improvement: **{abs_improvement:.4f} pts**",
+        f"- Relative improvement: **{rel_improvement:.1f}%**",
+        f"- Experiments included in v1.1: {included_experiments}",
+        "",
+        "---",
+        "",
+        "## 2. Controlled Experiment Summary",
+        "",
+        "| ID | Category | Variable | Baseline | New Value | Val WER | Delta | Decision |",
+        "| -- | -------- | -------- | -------- | --------- | ------- | ----- | -------- |",
+    ]
+
+    for e in experiment_log_entries:
+        lines.append(
+            f"| {e.get('experiment_id')} "
+            f"| {e.get('category')} "
+            f"| {e.get('variable_name')} "
+            f"| {e.get('baseline_value')} "
+            f"| {e.get('experiment_value')} "
+            f"| {float(e.get('experiment_val_wer', 0)):.4f} "
+            f"| {float(e.get('val_wer_delta', 0)):+.4f} "
+            f"| **{e.get('decision')}** |"
+        )
+
+    lines += [
+        "",
+        "---",
+        "",
+        "## 3. WER/CER Comparison (val only)",
+        "",
+        "| Model | Val WER | Abs Improvement |",
+        "| ----- | ------- | --------------- |",
+        f"| Model v1 | {model_v1_val_wer:.2%} | — |",
+        f"| Model v1.1 | {v1_1_val_wer:.2%} | {abs_improvement:.4f} pts |",
+        "",
+        "---",
+        "",
+        "## 4. Recommendations for Future Milestones",
+        "",
+        "- Review REJECT experiments for potential combination opportunities",
+        "- Consider Whisper small.en upgrade (A1) if further gains are needed",
+        "",
+    ]
+
+    path = out_dir / "improvement_analysis_report.md"
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+    return path

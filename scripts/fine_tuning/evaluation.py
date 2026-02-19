@@ -25,6 +25,7 @@ def run_inference(
     verbose: bool = True,
     beam_size: int = 1,
     temperature: float = 1.0,
+    explicit_attn_mask: bool = False,
 ) -> pd.DataFrame:
     """
     Run inference on dataset and return predictions DataFrame.
@@ -69,6 +70,12 @@ def run_inference(
         # Prepare input
         input_features = torch.tensor(sample["input_features"]).unsqueeze(0)
         input_features = input_features.to(device)
+
+        # C1: explicit attention mask (all ones — no padding in single-sample inference)
+        if explicit_attn_mask:
+            gen_kwargs["attention_mask"] = torch.ones(
+                input_features.shape[:2], dtype=torch.long, device=device
+            )
 
         # Generate transcription
         # Note: language/task locked by forced_decoder_ids in English-only models
@@ -244,6 +251,7 @@ def run_full_evaluation(
     verbose: bool = True,
     beam_size: int = 1,
     temperature: float = 1.0,
+    explicit_attn_mask: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """
     Run full evaluation pipeline.
@@ -260,6 +268,7 @@ def run_full_evaluation(
         verbose: Show progress
         beam_size: Number of beams for beam search
         temperature: Sampling temperature
+        explicit_attn_mask: Pass attention_mask explicitly (C1 hygiene experiment)
 
     Returns:
         Tuple of (predictions_df, evaluation_metrics)
@@ -277,6 +286,7 @@ def run_full_evaluation(
         verbose=verbose,
         beam_size=beam_size,
         temperature=temperature,
+        explicit_attn_mask=explicit_attn_mask,
     )
 
     # Compute metrics

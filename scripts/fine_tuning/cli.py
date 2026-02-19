@@ -22,6 +22,7 @@ from fine_tuning.data import (
     prepare_dataset,
 )
 from fine_tuning.evaluation import run_full_evaluation
+from fine_tuning.experiments import run_controlled_experiment_pipeline
 from fine_tuning.models import (
     load_checkpoint,
     setup_model_and_processor,
@@ -162,6 +163,50 @@ Examples:
         type=float,
         default=0.0,
         help="Sampling temperature (0.0=deterministic, default: 0.0)",
+    )
+
+    # Controlled experiment flags
+    parser.add_argument(
+        "--experiment_id",
+        choices=["C1", "C2", "B1", "B2", "B3", "assemble"],
+        help="Experiment to run (C1/C2=inference hygiene, B1-3=training, assemble=build v1.1)",
+    )
+    parser.add_argument(
+        "--model_v1_checkpoint",
+        help="Path to Model v1 checkpoint directory (required for controlled experiments)",
+    )
+    parser.add_argument(
+        "--decode_config",
+        help="Path to DECODE_V1.json (required for controlled experiments)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Reproducibility seed for training experiments (default: 42)",
+    )
+    parser.add_argument(
+        "--dropout",
+        type=float,
+        default=0.1,
+        help="LoRA dropout override for experiments (default: 0.1)",
+    )
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=0.0,
+        help="Weight decay for training experiments (default: 0.0)",
+    )
+    parser.add_argument(
+        "--explicit_attn_mask",
+        action="store_true",
+        help="Pass explicit attention mask in inference (C1 hygiene experiment)",
+    )
+    parser.add_argument(
+        "--n_reproducibility_runs",
+        type=int,
+        default=3,
+        help="Number of inference runs for C-category variance check (default: 3)",
     )
 
     # Logging
@@ -587,7 +632,9 @@ def main() -> int:
         args = parse_args()
         validate_args(args)
 
-        if args.eval_only:
+        if args.experiment_id:
+            return run_controlled_experiment_pipeline(args)
+        elif args.eval_only:
             return run_eval_only_pipeline(args)
         else:
             return run_training_pipeline(args)

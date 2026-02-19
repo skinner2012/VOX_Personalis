@@ -38,6 +38,19 @@ class TrainingConfig:
     fp16: bool = False
     device: str = "cpu"
     disable_tqdm: bool = False  # Set True to hide progress bars
+    weight_decay: float = 0.0
+    seed: int = 42
+
+
+def set_seeds(seed: int) -> None:
+    """Set all random seeds for reproducibility."""
+    import random
+
+    import numpy as np
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 def create_training_args(config: TrainingConfig) -> Seq2SeqTrainingArguments:
@@ -60,7 +73,7 @@ def create_training_args(config: TrainingConfig) -> Seq2SeqTrainingArguments:
         # Optimizer
         learning_rate=config.learning_rate,
         warmup_steps=config.warmup_steps,
-        weight_decay=0.01,
+        weight_decay=config.weight_decay,
         # Evaluation
         eval_strategy=config.evaluation_strategy,
         # Logging

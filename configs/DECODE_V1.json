@@ -1,0 +1,15 @@
+{
+  "beam_size": 5,
+  "temperature": 0,
+  "language": "en",
+  "task": "transcribe",
+  "fp16": false,
+  "no_repeat_ngram_size": null,
+  "length_penalty": null,
+  "compression_ratio_threshold": null,
+  "logprob_threshold": null,
+  "no_speech_threshold": null,
+  "condition_on_prev_tokens": false,
+  "config_version": "DECODE_V1",
+  "locked_at": "S1-M3"
+}

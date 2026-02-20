@@ -40,14 +40,14 @@ All M4 experiments MUST compare against the **locked Model v1**. Fill every
 
 ### Model v1 Reference (Locked)
 
-| Property      | Value                           | Source            |
-| ------------- | ------------------------------- | ----------------- |
-| Checkpoint    | `out/fine_tuning/{M3}/best/`    | S1-M3 output      |
-| Base Model    | `whisper-base.en`               | M3 training       |
-| LoRA Rank     | `r=` **{fill from M3}**         | M3 experiment log |
-| Best Epoch    | **{fill from M3}**              | M3 training log   |
-| Val WER       | **{fill from M3}** (e.g. 0.664) | `experiment_log`  |
-| Decode Config | `configs/DECODE_V1.json`        | Frozen            |
+| Property      | Value                                        | Source                                   |
+| ------------- | -------------------------------------------- | ---------------------------------------- |
+| Checkpoint    | `out/fine_tuning/20260216-225002/checkpoint` | S1-M3 output                             |
+| Base Model    | `whisper-base.en`                            | M3 training                              |
+| LoRA Rank     | `r=16`                                       | M3 experiment log                        |
+| Best Epoch    | `3`                                          | M3 training log                          |
+| Val WER       | `0.6478` (64.78%) with `DECODE_V1.json`      | `decoding_ablation/eval_20260217-121521` |
+| Decode Config | `configs/DECODE_V1.json`                     | Frozen                                   |
 
 ### Text Normalization (Locked)
 
@@ -93,15 +93,15 @@ must be created — never modify `DECODE_V1.json`.
 
 All training experiments MUST set the following seeds identically:
 
-| Scope         | API                                  | Value      |
-| ------------- | ------------------------------------ | ---------- |
-| Python        | `random.seed(N)`                     | **{fill}** |
-| NumPy         | `np.random.seed(N)`                  | Same N     |
-| PyTorch       | `torch.manual_seed(N)`               | Same N     |
-| DataLoader    | `worker_init_fn` with fixed seed     | Same N     |
-| Deterministic | `torch.use_deterministic_algorithms` | Off (log)  |
+| Scope         | API                                  | Value     |
+| ------------- | ------------------------------------ | --------- |
+| Python        | `random.seed(N)`                     | `42`      |
+| NumPy         | `np.random.seed(N)`                  | `42`      |
+| PyTorch       | `torch.manual_seed(N)`               | `42`      |
+| DataLoader    | `worker_init_fn` with fixed seed     | `42`      |
+| Deterministic | `torch.use_deterministic_algorithms` | Off (log) |
 
-`{fill}` = same seed used in M3 (record in frozen_config.json per run).
+Seed `42` was used in M3 (record in frozen_config.json per run).
 Deterministic mode is not required but its status must be recorded.
 
 ### Locked Configuration (MUST NOT Change)
@@ -159,7 +159,7 @@ changes exactly one variable from Model v1.
 
 1. **One variable per experiment** — only the specified variable changes
 1. **Fixed seed** — same seed value across all experiments (see above)
-1. **Max epochs fixed** — all training runs use `max_epochs = {M3 value}`;
+1. **Max epochs fixed** — all training runs use `max_epochs = 3`;
    early stopping may select an earlier checkpoint but cannot exceed this
 1. **Val-only comparison** — all decisions based on validation split only
 1. **Decide before proceeding** — record ADOPT/REJECT/INVESTIGATE before
@@ -195,7 +195,7 @@ before any training experiments.
 gap.
 
 **Max epochs contract:** Every B-category run MUST cap at
-`max_epochs = {M3 value}`. This keeps training amount constant and
+`max_epochs = 3`. This keeps training amount constant and
 isolates the variable.
 Early stopping only determines which checkpoint is selected.
 
@@ -386,11 +386,11 @@ reproducible state of that run:
     "manifest_path": "out/dataset_v1/YYYYMMDD/dataset_v1_manifest.csv",
     "manifest_sha256": "{hash}"
   },
-  "model_v1_checkpoint": "out/fine_tuning/{M3_RUN_ID}/best_model/",
+  "model_v1_checkpoint": "out/fine_tuning/20260216-225002/checkpoint",
   "base_model": "whisper-base.en",
   "lora": {
-    "rank": 8,
-    "alpha": 16,
+    "rank": 16,
+    "alpha": 32,
     "dropout": 0.1
   },
   "training": {
@@ -457,9 +457,9 @@ Per-utterance val predictions for Model v1.1.
   "base_model": "whisper-base.en",
   "experiments_included": ["C1", "B1"],
   "model_v1_reference": {
-    "checkpoint_path": "out/fine_tuning/{M3_RUN_ID}/best_model/",
-    "val_wer": 0.664,
-    "lora_rank": 8
+    "checkpoint_path": "out/fine_tuning/20260216-225002/checkpoint",
+    "val_wer": 0.6478,
+    "lora_rank": 16
   },
   "val_results": {
     "wer": 0.620,
@@ -492,12 +492,11 @@ M4 reuses `scripts.fine_tuning` with additional M4-specific flags.
 python -m scripts.fine_tuning \
   --manifest_path "./out/dataset_v1/YYYYMMDD/dataset_v1_manifest.csv" \
   --baseline_metrics "./out/baseline_eval/YYYYMMDD/baseline_metrics.json" \
-  --model_v1_checkpoint "./out/fine_tuning/{M3_RUN_ID}/best_model" \
+  --model_v1_checkpoint "./out/fine_tuning/20260216-225002/checkpoint" \
   --decode_config "./configs/DECODE_V1.json" \
   --out_dir "./out/model_improvement" \
-  --model whisper-base.en \
-  --method lora \
-  --lora_rank {M3_BEST_RANK} \
+  --model base.en \
+  --lora_rank 16 \
   --experiment_id B1 \
   --lr 5e-5 \
   --device cpu \

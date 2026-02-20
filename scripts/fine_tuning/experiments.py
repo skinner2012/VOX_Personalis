@@ -32,7 +32,9 @@ from fine_tuning.reporting import (
 from fine_tuning.training import TrainingConfig, save_checkpoint, set_seeds, train_model
 
 # Model v1 locked reference from S1-M3
-_MODEL_V1_VAL_WER = 0.6823
+# Measured with DECODE_V1.json (beam=5, temp=0.0) on val split
+# Source: out/fine_tuning/decoding_ablation/eval_20260217-121521/
+_MODEL_V1_VAL_WER = 0.6478
 
 
 def _load_baseline_metrics(path: str | Path) -> dict:

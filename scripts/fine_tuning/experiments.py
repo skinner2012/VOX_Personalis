@@ -18,6 +18,7 @@ from fine_tuning.experiment_log import (
     create_b_category_entry,
     create_c_category_entry,
     get_adopt_experiments,
+    get_best_b_experiment,
     read_controlled_experiment_log,
 )
 from fine_tuning.models import load_checkpoint, setup_model_and_processor
@@ -368,24 +369,35 @@ def _run_assembly(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int
         raise FileNotFoundError(f"Controlled experiment log not found: {log_path}")
 
     adopted = get_adopt_experiments(log_path)
-    if not adopted:
-        print("  No ADOPT experiments found. Model v1.1 = Model v1 (no improvement).")
-        included = []
-        best_checkpoint = args.model_v1_checkpoint
-    else:
+    best_b = get_best_b_experiment(log_path)
+
+    c_adopted = [e for e in adopted if e["category"] == "C"]
+
+    if best_b:
+        b_decision = best_b["decision"]
+        print(
+            f"  Best B-experiment: {best_b['experiment_id']} "
+            f"({b_decision}, delta={best_b['val_wer_delta']})"
+        )
+        included = [best_b["experiment_id"]]
+        best_checkpoint = best_b["checkpoint_path"]
+
+        if c_adopted:
+            print(
+                f"  Including C ({c_adopted[0]['experiment_id']}) + B ({best_b['experiment_id']})"
+            )
+            included = [c_adopted[0]["experiment_id"]] + included
+    elif adopted:
         best = adopted[0]
-        print(f"  Best ADOPT: {best['experiment_id']} (delta={best['val_wer_delta']} pts)")
+        print(f"  No B-experiment to include. Best ADOPT: {best['experiment_id']}")
         included = [best["experiment_id"]]
         best_checkpoint = best["checkpoint_path"]
-
-        c_adopted = [e for e in adopted if e["category"] == "C"]
-        b_adopted = [e for e in adopted if e["category"] == "B"]
-        if c_adopted and b_adopted and len(adopted) >= 2:
-            print(
-                f"  Multiple ADOPTs — combining C ({c_adopted[0]['experiment_id']}) "
-                f"+ B ({b_adopted[0]['experiment_id']}) is possible but requires retraining."
-            )
-            print("  Using best single change for v1.1 (per spec rule: best single first).")
+    else:
+        print(
+            "  No ADOPT or INVESTIGATE experiments found. Model v1.1 = Model v1 (no improvement)."
+        )
+        included = []
+        best_checkpoint = args.model_v1_checkpoint
 
     v1_1_dir = out_dir / "model_v1.1_checkpoint"
     if best_checkpoint and Path(best_checkpoint).exists():

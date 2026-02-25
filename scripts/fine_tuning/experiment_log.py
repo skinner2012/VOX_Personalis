@@ -38,22 +38,33 @@ def compute_decision(
     Compute ADOPT/INVESTIGATE/REJECT decision per spec thresholds.
 
     Args:
-        val_wer_delta: Absolute WER improvement (positive = better)
+        val_wer_delta: WER improvement in WER ratio units (positive = better).
+                       e.g. 0.6478 - 0.6404 = 0.0074. Converted to absolute pts
+                       internally (×100) before comparing against thresholds.
         insertion_delta: Change in insertions vs Model v1 (positive = more insertions)
         slice_regression_max: Worst slice regression in absolute WER pts
 
     Returns:
         Tuple of (decision, rationale)
     """
+    # Convert WER ratio to absolute percentage points for threshold comparison
+    val_wer_delta_pts = val_wer_delta * 100
+
     if insertion_delta > 0:
         return "REJECT", "Insertions increased vs Model v1"
     if slice_regression_max > 3.0:
         return "REJECT", f"Slice regression {slice_regression_max:.1f} pts > 3.0 threshold"
-    if val_wer_delta >= _ADOPT_THRESHOLD:
-        return "ADOPT", f"{val_wer_delta:.2f} abs pts improvement >= {_ADOPT_THRESHOLD} threshold"
-    if val_wer_delta >= _INVESTIGATE_THRESHOLD:
-        return "INVESTIGATE", f"{val_wer_delta:.2f} abs pts improvement (0.5–1.9 range)"
-    return "REJECT", f"{val_wer_delta:.2f} abs pts improvement < {_INVESTIGATE_THRESHOLD} threshold"
+    if val_wer_delta_pts >= _ADOPT_THRESHOLD:
+        return (
+            "ADOPT",
+            f"{val_wer_delta_pts:.2f} abs pts improvement >= {_ADOPT_THRESHOLD} threshold",
+        )
+    if val_wer_delta_pts >= _INVESTIGATE_THRESHOLD:
+        return "INVESTIGATE", f"{val_wer_delta_pts:.2f} abs pts improvement (0.5–1.9 range)"
+    return (
+        "REJECT",
+        f"{val_wer_delta_pts:.2f} abs pts improvement < {_INVESTIGATE_THRESHOLD} threshold",
+    )
 
 
 def create_c_category_entry(
@@ -213,3 +224,25 @@ def get_adopt_experiments(log_path: str | Path) -> list[dict]:
     entries = read_controlled_experiment_log(log_path)
     adopted = [e for e in entries if e.get("decision") == "ADOPT"]
     return sorted(adopted, key=lambda e: float(e.get("val_wer_delta", 0)), reverse=True)
+
+
+def get_best_b_experiment(log_path: str | Path) -> dict | None:
+    """
+    Return the best B-category experiment for assembly consideration.
+
+    Prefers ADOPT over INVESTIGATE. Returns None if no ADOPT or INVESTIGATE
+    B-experiment exists. Used by assembly when no B-category experiment reached
+    the ADOPT threshold but INVESTIGATE results are still worth including.
+
+    Returns:
+        Best B-category entry dict, or None
+    """
+    entries = read_controlled_experiment_log(log_path)
+    b_entries = [e for e in entries if e.get("category") == "B"]
+
+    for decision in ("ADOPT", "INVESTIGATE"):
+        candidates = [e for e in b_entries if e.get("decision") == decision]
+        if candidates:
+            return max(candidates, key=lambda e: float(e.get("val_wer_delta", 0)))
+
+    return None

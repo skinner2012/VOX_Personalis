@@ -22,6 +22,7 @@ from fine_tuning.data import (
     prepare_dataset,
 )
 from fine_tuning.evaluation import run_full_evaluation
+from fine_tuning.experiment_log import INFERENCE_EXPERIMENT_IDS, TRAINING_EXPERIMENT_IDS
 from fine_tuning.experiments import run_controlled_experiment_pipeline
 from fine_tuning.models import (
     load_checkpoint,
@@ -168,8 +169,11 @@ Examples:
     # Controlled experiment flags
     parser.add_argument(
         "--experiment_id",
-        choices=["C1", "C2", "B1", "B2", "B3", "assemble"],
-        help="Experiment to run (C1/C2=inference hygiene, B1-3=training, assemble=build v1.1)",
+        choices=[*INFERENCE_EXPERIMENT_IDS, *TRAINING_EXPERIMENT_IDS, "assemble"],
+        help=(
+            "Experiment to run (inference_1/inference_2=hygiene, "
+            "training_1-3=regularization, assemble=build v1.1)"
+        ),
     )
     parser.add_argument(
         "--model_v1_checkpoint",
@@ -206,7 +210,7 @@ Examples:
         "--n_reproducibility_runs",
         type=int,
         default=3,
-        help="Number of inference runs for C-category variance check (default: 3)",
+        help="Number of inference runs for inference experiment variance check (default: 3)",
     )
 
     # Logging

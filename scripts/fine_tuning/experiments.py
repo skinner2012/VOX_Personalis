@@ -14,11 +14,14 @@ from baseline_eval.normalization import create_normalizer
 from fine_tuning.data import create_hf_dataset, load_manifest, prepare_dataset
 from fine_tuning.evaluation import run_full_evaluation
 from fine_tuning.experiment_log import (
+    CATEGORY_INFERENCE,
+    INFERENCE_EXPERIMENT_IDS,
+    TRAINING_EXPERIMENT_IDS,
     append_controlled_experiment_log,
-    create_b_category_entry,
-    create_c_category_entry,
+    create_inference_experiment_entry,
+    create_training_experiment_entry,
     get_adopt_experiments,
-    get_best_b_experiment,
+    get_best_training_experiment,
     read_controlled_experiment_log,
 )
 from fine_tuning.models import load_checkpoint, setup_model_and_processor
@@ -51,7 +54,7 @@ def _load_decode_config(path: str) -> dict:
     return result
 
 
-def _run_c_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int:
+def _run_inference_experiment(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int:
     """
     C1/C2: Inference hygiene — run val eval × n runs, check WER variance.
 
@@ -64,8 +67,8 @@ def _run_c_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
     exp_dir.mkdir(parents=True, exist_ok=True)
 
     descriptions = {
-        "C1": "explicit attention mask (all ones) passed to model.generate()",
-        "C2": "decode params loaded from DECODE_V1.json instead of per-call args",
+        "inference_1": "explicit attention mask (all ones) passed to model.generate()",
+        "inference_2": "decode params loaded from DECODE_V1.json instead of per-call args",
     }
     description = descriptions.get(exp_id, exp_id)
 
@@ -106,7 +109,7 @@ def _run_c_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
             verbose=verbose,
             beam_size=beam_size,
             temperature=temperature,
-            explicit_attn_mask=(exp_id == "C1"),
+            explicit_attn_mask=(exp_id == "inference_1"),
         )
 
         run_wer = eval_results["aggregate"]["wer"]
@@ -134,7 +137,7 @@ def _run_c_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
         "model_v1_checkpoint": args.model_v1_checkpoint,
         "decode_config": args.decode_config,
         "decode_config_version": decode_cfg.get("config_version", "DECODE_V1"),
-        "explicit_attn_mask": (exp_id == "C1"),
+        "explicit_attn_mask": (exp_id == "inference_1"),
         "n_runs": n_runs,
         "wer_runs": [round(w, 4) for w in wer_runs],
         "variance": round(variance, 4),
@@ -142,13 +145,13 @@ def _run_c_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
     }
     write_frozen_config(exp_dir, frozen)
 
-    entry = create_c_category_entry(
+    entry = create_inference_experiment_entry(
         experiment_id=exp_id,
         timestamp=datetime.now().isoformat(),
         description=description,
-        variable_name="attention_mask" if exp_id == "C1" else "decode_config_source",
-        baseline_value="implicit" if exp_id == "C1" else "per-call args",
-        experiment_value="explicit (all ones)" if exp_id == "C1" else "DECODE_V1.json",
+        variable_name="attention_mask" if exp_id == "inference_1" else "decode_config_source",
+        baseline_value="implicit" if exp_id == "inference_1" else "per-call args",
+        experiment_value="explicit (all ones)" if exp_id == "inference_1" else "DECODE_V1.json",
         model_v1_val_wer=_MODEL_V1_VAL_WER,
         wer_runs=wer_runs,
     )
@@ -162,7 +165,7 @@ def _run_c_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
     return 0
 
 
-def _run_b_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int:
+def _run_training_experiment(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int:
     """
     B1/B2/B3: Training regularization — retrain from scratch with one changed hyperparam.
 
@@ -175,19 +178,19 @@ def _run_b_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
     exp_dir.mkdir(parents=True, exist_ok=True)
 
     experiment_meta = {
-        "B1": {
+        "training_1": {
             "description": "lower learning rate 1e-4 → 5e-5",
             "variable_name": "learning_rate",
             "baseline_value": "1e-4",
             "experiment_value": "5e-5",
         },
-        "B2": {
+        "training_2": {
             "description": "higher LoRA dropout 0.1 → 0.15",
             "variable_name": "lora_dropout",
             "baseline_value": "0.1",
             "experiment_value": "0.15",
         },
-        "B3": {
+        "training_3": {
             "description": "L2 weight decay 0.0 → 0.01",
             "variable_name": "weight_decay",
             "baseline_value": "0.0",
@@ -329,7 +332,7 @@ def _run_b_category(args: argparse.Namespace, out_dir: Path, verbose: bool) -> i
     # WER delta is the primary decision signal; insertion guard is a secondary check.
     insertion_delta = 0
 
-    entry = create_b_category_entry(
+    entry = create_training_experiment_entry(
         experiment_id=exp_id,
         timestamp=datetime.now().isoformat(),
         description=meta["description"],
@@ -369,9 +372,9 @@ def _run_assembly(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int
         raise FileNotFoundError(f"Controlled experiment log not found: {log_path}")
 
     adopted = get_adopt_experiments(log_path)
-    best_b = get_best_b_experiment(log_path)
+    best_b = get_best_training_experiment(log_path)
 
-    c_adopted = [e for e in adopted if e["category"] == "C"]
+    c_adopted = [e for e in adopted if e["category"] == CATEGORY_INFERENCE]
 
     if best_b:
         b_decision = best_b["decision"]
@@ -440,7 +443,10 @@ def _run_assembly(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int
     v1_1_val_wer = v1_1_eval_results["aggregate"]["wer"]
 
     v1_pred_path = (
-        out_dir / "experiments" / (included[0] if included else "C1") / "val_predictions.csv"
+        out_dir
+        / "experiments"
+        / (included[0] if included else INFERENCE_EXPERIMENT_IDS[0])
+        / "val_predictions.csv"
     )
     if v1_pred_path.exists():
         v1_pred_df = pd.read_csv(v1_pred_path)
@@ -496,10 +502,10 @@ def run_controlled_experiment_pipeline(args: argparse.Namespace) -> int:
 
     exp_id = args.experiment_id
     try:
-        if exp_id in ("C1", "C2"):
-            return _run_c_category(args, out_dir, verbose)
-        elif exp_id in ("B1", "B2", "B3"):
-            return _run_b_category(args, out_dir, verbose)
+        if exp_id in INFERENCE_EXPERIMENT_IDS:
+            return _run_inference_experiment(args, out_dir, verbose)
+        elif exp_id in TRAINING_EXPERIMENT_IDS:
+            return _run_training_experiment(args, out_dir, verbose)
         elif exp_id == "assemble":
             return _run_assembly(args, out_dir, verbose)
         else:

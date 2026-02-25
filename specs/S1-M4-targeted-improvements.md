@@ -40,14 +40,14 @@ All M4 experiments MUST compare against the **locked Model v1**. Fill every
 
 ### Model v1 Reference (Locked)
 
-| Property      | Value                                        | Source                                   |
-| ------------- | -------------------------------------------- | ---------------------------------------- |
-| Checkpoint    | `out/fine_tuning/20260216-225002/checkpoint` | S1-M3 output                             |
-| Base Model    | `whisper-base.en`                            | M3 training                              |
-| LoRA Rank     | `r=16`                                       | M3 experiment log                        |
-| Best Epoch    | `3`                                          | M3 training log                          |
-| Val WER       | `0.6478` (64.78%) with `DECODE_V1.json`      | `decoding_ablation/eval_20260217-121521` |
-| Decode Config | `configs/DECODE_V1.json`                     | Frozen                                   |
+| Property      | Value                                        | Source               |
+| ------------- | -------------------------------------------- | -------------------- |
+| Checkpoint    | `out/fine_tuning/20260216-225002/checkpoint` | S1-M3 output         |
+| Base Model    | `whisper-base.en`                            | M3 training          |
+| LoRA Rank     | `r=16`                                       | M3 experiment log    |
+| Best Epoch    | `3`                                          | M3 training log      |
+| Val WER       | `0.6478` (64.78%) with `DECODE_V1.json`      | M3 decoding ablation |
+| Decode Config | `configs/DECODE_V1.json`                     | Frozen               |
 
 ### Text Normalization (Locked)
 
@@ -120,8 +120,9 @@ ______________________________________________________________________
 
 ### Must Have
 
-- **C1** (attention mask) + **C2** (generation config) — inference hygiene
-- **B1** (learning rate) + **B2** (dropout) — training regularization
+- **inference_1** (attention mask) +
+  **inference_2** (generation config) — inference hygiene
+- **training_1** (learning rate) + **training_2** (dropout) — training regularization
 - Controlled Experiment Log with all required fields
 - Model v1.1 checkpoint (best val config)
 - Improvement Analysis Report
@@ -130,12 +131,10 @@ ______________________________________________________________________
 
 ### Stretch Goal
 
-- **B3** (weight decay) — one additional regularization experiment
+- **training_3** (weight decay) — one additional regularization experiment
 
 ### Out of Scope
 
-- **Whisper small.en (A1)** — deferred; will be revisited in M5 if
-  M4 improvements are insufficient
 - Dataset split modifications
 - Data augmentation
 - Broad hyperparameter sweeps
@@ -145,8 +144,8 @@ ______________________________________________________________________
 
 ### Maximum Training Run Count
 
-**≤ 3 training runs** (B1, B2, optional B3). C1 and C2 are inference-only
-and do not count.
+**≤ 3 training runs** (training_1, training_2, optional training_3).
+inference_1 and inference_2 are inference-only and do not count.
 
 ______________________________________________________________________
 
@@ -165,17 +164,17 @@ changes exactly one variable from Model v1.
 1. **Decide before proceeding** — record ADOPT/REJECT/INVESTIGATE before
    starting the next experiment
 
-### Category C: Inference Hygiene (Start Here — No Retraining)
+### Category: Inference Hygiene (Start Here — No Retraining)
 
-| Exp | Variable Changed        | Model v1      | New Value        |
-| --- | ----------------------- | ------------- | ---------------- |
-| C1  | Attention mask handling | Implicit      | Explicit         |
-| C2  | Generation config       | Per-call args | `DECODE_V1.json` |
+| Exp         | Variable Changed        | Model v1      | New Value        |
+| ----------- | ----------------------- | ------------- | ---------------- |
+| inference_1 | Attention mask handling | Implicit      | Explicit         |
+| inference_2 | Generation config       | Per-call args | `DECODE_V1.json` |
 
 **Hypothesis:** Eliminating decoding instability reduces artificial errors
 and improves reproducibility.
 
-**Success criterion for C1/C2:** Reproducibility, not WER.
+**Success criterion for inference_1/inference_2:** Reproducibility, not WER.
 
 Run the same model 3× with identical inputs. Acceptable result: WER variance
 < 0.2 absolute pts across 3 runs. WER improvement is a bonus, not required.
@@ -183,18 +182,18 @@ Run the same model 3× with identical inputs. Acceptable result: WER variance
 **Why first:** No training required. Establishes a clean, stable baseline
 before any training experiments.
 
-### Category B: Training Regularization
+### Category: Training Regularization
 
-| Exp | Variable      | Model v1 Value | New Value | Max Epochs     |
-| --- | ------------- | -------------- | --------- | -------------- |
-| B1  | Learning rate | 1e-4           | 5e-5      | = M3 max       |
-| B2  | Dropout       | 0.1            | 0.15      | = M3 max       |
-| B3  | Weight decay  | 0.0            | 0.01      | = M3 max (opt) |
+| Exp        | Variable      | Model v1 Value | New Value | Max Epochs     |
+| ---------- | ------------- | -------------- | --------- | -------------- |
+| training_1 | Learning rate | 1e-4           | 5e-5      | = M3 max       |
+| training_2 | Dropout       | 0.1            | 0.15      | = M3 max       |
+| training_3 | Weight decay  | 0.0            | 0.01      | = M3 max (opt) |
 
 **Hypothesis:** Improved regularization reduces val → test generalization
 gap.
 
-**Max epochs contract:** Every B-category run MUST cap at
+**Max epochs contract:** Every training experiment run MUST cap at
 `max_epochs = 3`. This keeps training amount constant and
 isolates the variable.
 Early stopping only determines which checkpoint is selected.
@@ -205,25 +204,25 @@ ______________________________________________________________________
 
 ### Log Schema (`controlled_experiment_log.csv`)
 
-| Column                 | Type  | Description                              |
-| ---------------------- | ----- | ---------------------------------------- |
-| `experiment_id`        | str   | C1, C2, B1, B2, B3                       |
-| `timestamp`            | str   | ISO 8601 start timestamp                 |
-| `category`             | str   | B (regularization) or C (inference)      |
-| `hypothesis`           | str   | Stated hypothesis                        |
-| `variable_name`        | str   | Exact variable changed                   |
-| `baseline_value`       | str   | Model v1 value                           |
-| `experiment_value`     | str   | New value tested                         |
-| `model_v1_val_wer`     | float | Model v1 val WER (e.g. 0.664)            |
-| `experiment_val_wer`   | float | This experiment's val WER                |
-| `val_wer_delta`        | float | Absolute improvement (positive = better) |
-| `relative_improvement` | float | (delta / model_v1_val_wer) × 100%        |
-| `hypothesis_supported` | bool  | True if results support hypothesis       |
-| `decision`             | str   | ADOPT / INVESTIGATE / REJECT             |
-| `decision_rationale`   | str   | Brief explanation                        |
-| `training_time_sec`    | int   | Duration (0 for inference-only)          |
-| `checkpoint_path`      | str   | Path to experiment checkpoint            |
-| `notes`                | str   | Additional observations                  |
+| Column                 | Type  | Description                                                  |
+| ---------------------- | ----- | ------------------------------------------------------------ |
+| `experiment_id`        | str   | inference_1, inference_2, training_1, training_2, training_3 |
+| `timestamp`            | str   | ISO 8601 start timestamp                                     |
+| `category`             | str   | `training` or `inference`                                    |
+| `hypothesis`           | str   | Stated hypothesis                                            |
+| `variable_name`        | str   | Exact variable changed                                       |
+| `baseline_value`       | str   | Model v1 value                                               |
+| `experiment_value`     | str   | New value tested                                             |
+| `model_v1_val_wer`     | float | Model v1 val WER (e.g. 0.664)                                |
+| `experiment_val_wer`   | float | This experiment's val WER                                    |
+| `val_wer_delta`        | float | Absolute improvement (positive = better)                     |
+| `relative_improvement` | float | (delta / model_v1_val_wer) × 100%                            |
+| `hypothesis_supported` | bool  | True if results support hypothesis                           |
+| `decision`             | str   | ADOPT / INVESTIGATE / REJECT                                 |
+| `decision_rationale`   | str   | Brief explanation                                            |
+| `training_time_sec`    | int   | Duration (0 for inference-only)                              |
+| `checkpoint_path`      | str   | Path to experiment checkpoint                                |
+| `notes`                | str   | Additional observations                                      |
 
 ### Decision Thresholds
 
@@ -235,9 +234,9 @@ ______________________________________________________________________
 | Slice regression > 3 pts     | REJECT      | Even if aggregate better  |
 | Insertions increased         | REJECT      | Regardless of WER         |
 
-**Note for C1/C2:** Decision threshold is reproducibility (variance < 0.2
-pts across 3 runs), not WER delta. Record `val_wer_delta = 0.0` if hygiene
-only.
+**Note for inference_1/inference_2:** Decision threshold is reproducibility
+(variance < 0.2 pts across 3 runs), not WER delta. Record `val_wer_delta = 0.0`
+if hygiene only.
 
 ______________________________________________________________________
 
@@ -249,7 +248,8 @@ ______________________________________________________________________
    exactly one (C) + (B) combination
 1. **Re-validate combination** — run val on combined checkpoint before
    finalizing; record in experiment log
-1. **No multi-B stacking** — do not combine B1 + B2 + B3 (confounding)
+1. **No multi-training stacking** — do not combine
+   training_1 + training_2 + training_3 (confounding)
 1. **Document selection** — record which experiments are included and why
    in `included_experiments.json`
 
@@ -276,25 +276,25 @@ Start with inference hygiene (free), then training regularization (moderate
 cost). This order ensures we fix correctness issues before training, and
 validates improvement incrementally.
 
-### Phase 1: Inference Hygiene (C1, C2)
+### Phase 1: Inference Hygiene (inference_1, inference_2)
 
-| Step                           | Output                 |
-| ------------------------------ | ---------------------- |
-| Implement explicit attn mask   | Code change            |
-| Run C1: val eval × 3           | Reproducibility report |
-| Implement `DECODE_V1.json` use | Code change            |
-| Run C2: val eval × 3           | Reproducibility report |
-| Record C1, C2 decisions        | Experiment log entries |
+| Step                                      | Output                 |
+| ----------------------------------------- | ---------------------- |
+| Implement explicit attn mask              | Code change            |
+| Run inference_1: val eval × 3             | Reproducibility report |
+| Implement `DECODE_V1.json` use            | Code change            |
+| Run inference_2: val eval × 3             | Reproducibility report |
+| Record inference_1, inference_2 decisions | Experiment log entries |
 
-### Phase 2: Training Regularization (B1, B2, optional B3)
+### Phase 2: Training Regularization (training_1, training_2, optional training_3)
 
-| Step                          | Output                   |
-| ----------------------------- | ------------------------ |
-| Train B1 (lr=5e-5)            | Checkpoint + val metrics |
-| Record B1 decision            | Experiment log entry     |
-| Train B2 (dropout=0.15)       | Checkpoint + val metrics |
-| Record B2 decision            | Experiment log entry     |
-| [Optional] Train B3 (wd=0.01) | Checkpoint + val metrics |
+| Step                                  | Output                   |
+| ------------------------------------- | ------------------------ |
+| Train training_1 (lr=5e-5)            | Checkpoint + val metrics |
+| Record training_1 decision            | Experiment log entry     |
+| Train training_2 (dropout=0.15)       | Checkpoint + val metrics |
+| Record training_2 decision            | Experiment log entry     |
+| [Optional] Train training_3 (wd=0.01) | Checkpoint + val metrics |
 
 ### Phase 3: Assembly & Reporting
 
@@ -363,7 +363,7 @@ All outputs written to `--out_dir/YYYYMMDD-HHMMSS/`:
 Each experiment writes to `experiments/{experiment_id}/`:
 
 ```text
-experiments/B1/
+experiments/training_1/
 ├── val_predictions.csv
 ├── val_metrics.json
 ├── checkpoint/
@@ -380,7 +380,7 @@ reproducible state of that run:
 
 ```json
 {
-  "run_id": "B1",
+  "run_id": "training_1",
   "timestamp": "2026-XX-XXTXX:XX:XXZ",
   "dataset": {
     "manifest_path": "out/dataset_v1/YYYYMMDD/dataset_v1_manifest.csv",
@@ -425,7 +425,7 @@ model_v1.1_checkpoint/
 ├── adapter_model.safetensors
 ├── training_args.json
 ├── frozen_config.json
-└── included_experiments.json    ← e.g. ["C1", "B1"]
+└── included_experiments.json    ← e.g. ["inference_1", "training_1"]
 ```
 
 #### `controlled_experiment_log.csv`
@@ -455,7 +455,7 @@ Per-utterance val predictions for Model v1.1.
 {
   "model_version": "v1.1",
   "base_model": "whisper-base.en",
-  "experiments_included": ["C1", "B1"],
+  "experiments_included": ["inference_1", "training_1"],
   "model_v1_reference": {
     "checkpoint_path": "out/fine_tuning/20260216-225002/checkpoint",
     "val_wer": 0.6478,
@@ -497,7 +497,7 @@ python -m scripts.fine_tuning \
   --out_dir "./out/model_improvement" \
   --model base.en \
   --lora_rank 16 \
-  --experiment_id B1 \
+  --experiment_id training_1 \
   --lr 5e-5 \
   --device cpu \
   --verbose
@@ -514,17 +514,17 @@ python -m scripts.fine_tuning \
 
 ### Optional Arguments
 
-| Argument               | Default              | Description           |
-| ---------------------- | -------------------- | --------------------- |
-| `--out_dir`            | `./out/model_improv` | Output directory      |
-| `--experiment_id`      | None                 | Experiment log label  |
-| `--lr`                 | Model v1 value       | Override LR           |
-| `--dropout`            | Model v1 value       | Override dropout      |
-| `--weight_decay`       | 0.0                  | Override weight decay |
-| `--explicit_attn_mask` | False                | Explicit mask (C1)    |
-| `--device`             | `cpu`                | Device (cpu only)     |
-| `-v, --verbose`        | False                | Show progress         |
-| `-q, --quiet`          | False                | Suppress output       |
+| Argument               | Default              | Description                 |
+| ---------------------- | -------------------- | --------------------------- |
+| `--out_dir`            | `./out/model_improv` | Output directory            |
+| `--experiment_id`      | None                 | Experiment log label        |
+| `--lr`                 | Model v1 value       | Override LR                 |
+| `--dropout`            | Model v1 value       | Override dropout            |
+| `--weight_decay`       | 0.0                  | Override weight decay       |
+| `--explicit_attn_mask` | False                | Explicit mask (inference_1) |
+| `--device`             | `cpu`                | Device (cpu only)           |
+| `-v, --verbose`        | False                | Show progress               |
+| `-q, --quiet`          | False                | Suppress output             |
 
 ### Exit Codes
 
@@ -586,7 +586,8 @@ ______________________________________________________________________
 
 ### Must Have (Required)
 
-1. C1, C2, B1, B2 experiments completed with documented decisions
+1. inference_1, inference_2, training_1, training_2 experiments
+   completed with documented decisions
 1. Controlled Experiment Log fully populated
 1. Model v1.1 checkpoint saved
 1. `frozen_config.json` present in every experiment output
@@ -602,7 +603,7 @@ ______________________________________________________________________
 
 ### Stretch
 
-- B3 (weight decay) experiment completed
+- training_3 (weight decay) experiment completed
 - Val WER < 60% absolute
 
 **Note:** M4 is successful if the controlled experiment process is completed

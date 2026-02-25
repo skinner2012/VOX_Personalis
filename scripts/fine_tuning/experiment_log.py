@@ -3,24 +3,32 @@
 import csv
 from pathlib import Path
 
+# Experiment category constants — use these instead of raw strings
+CATEGORY_INFERENCE = "inference"  # inference hygiene experiments (no retraining)
+CATEGORY_TRAINING = "training"  # training regularization experiments
+
+# Experiment ID constants — grouped by category
+INFERENCE_EXPERIMENT_IDS = ("inference_1", "inference_2")
+TRAINING_EXPERIMENT_IDS = ("training_1", "training_2", "training_3")
+
 # Schema for controlled_experiment_log.csv
 CONTROLLED_LOG_COLUMNS = [
-    "experiment_id",  # C1, C2, B1, B2, B3
+    "experiment_id",  # inference_1, inference_2, training_1, training_2, training_3
     "timestamp",  # ISO 8601 start timestamp
-    "category",  # C (inference hygiene) or B (training regularization)
+    "category",  # "inference" or "training" (use CATEGORY_INFERENCE / CATEGORY_TRAINING)
     "description",  # One-line description of what changed
     "variable_name",  # Exact variable changed
     "baseline_value",  # Model v1 value
     "experiment_value",  # New value tested
     "model_v1_val_wer",  # Model v1 val WER (0.6823)
-    "experiment_val_wer",  # This experiment's val WER (C-category: mean of 3 runs)
+    "experiment_val_wer",  # This experiment's val WER (inference: mean of 3 runs)
     "val_wer_delta",  # Absolute improvement (positive = better, v1 - experiment)
     "relative_improvement",  # (delta / model_v1_val_wer) * 100
     "hypothesis_supported",  # True/False
     "decision",  # ADOPT / INVESTIGATE / REJECT
     "decision_rationale",  # Brief explanation
-    "training_time_sec",  # Duration (0 for inference-only C-category)
-    "checkpoint_path",  # Path to experiment checkpoint (empty for C-category)
+    "training_time_sec",  # Duration (0 for inference experiments)
+    "checkpoint_path",  # Path to experiment checkpoint (empty for inference experiments)
     "notes",  # Additional observations
 ]
 
@@ -67,7 +75,7 @@ def compute_decision(
     )
 
 
-def create_c_category_entry(
+def create_inference_experiment_entry(
     experiment_id: str,
     timestamp: str,
     description: str,
@@ -79,9 +87,9 @@ def create_c_category_entry(
     notes: str = "",
 ) -> dict:
     """
-    Create a controlled experiment log entry for C-category (inference hygiene).
+    Create a controlled experiment log entry for inference experiments (hygiene).
 
-    C-category success criterion is reproducibility (variance < 0.2 abs pts),
+    Inference experiment success criterion is reproducibility (variance < 0.2 abs pts),
     not WER delta. val_wer_delta is set to 0.0.
 
     Args:
@@ -103,14 +111,14 @@ def create_c_category_entry(
     return {
         "experiment_id": experiment_id,
         "timestamp": timestamp,
-        "category": "C",
+        "category": CATEGORY_INFERENCE,
         "description": description,
         "variable_name": variable_name,
         "baseline_value": baseline_value,
         "experiment_value": experiment_value,
         "model_v1_val_wer": round(model_v1_val_wer, 4),
         "experiment_val_wer": round(mean_wer, 4),
-        "val_wer_delta": 0.0,  # C-category: no WER delta claim
+        "val_wer_delta": 0.0,  # inference: no WER delta claim
         "relative_improvement": 0.0,
         "hypothesis_supported": passed,
         "decision": decision,
@@ -121,7 +129,7 @@ def create_c_category_entry(
     }
 
 
-def create_b_category_entry(
+def create_training_experiment_entry(
     experiment_id: str,
     timestamp: str,
     description: str,
@@ -137,7 +145,7 @@ def create_b_category_entry(
     notes: str = "",
 ) -> dict:
     """
-    Create a controlled experiment log entry for B-category (training regularization).
+    Create a controlled experiment log entry for training experiments (regularization).
 
     Args:
         model_v1_val_wer: Model v1 val WER (locked reference, 0.6823)
@@ -153,7 +161,7 @@ def create_b_category_entry(
     return {
         "experiment_id": experiment_id,
         "timestamp": timestamp,
-        "category": "B",
+        "category": CATEGORY_TRAINING,
         "description": description,
         "variable_name": variable_name,
         "baseline_value": baseline_value,
@@ -226,19 +234,19 @@ def get_adopt_experiments(log_path: str | Path) -> list[dict]:
     return sorted(adopted, key=lambda e: float(e.get("val_wer_delta", 0)), reverse=True)
 
 
-def get_best_b_experiment(log_path: str | Path) -> dict | None:
+def get_best_training_experiment(log_path: str | Path) -> dict | None:
     """
-    Return the best B-category experiment for assembly consideration.
+    Return the best training experiment for assembly consideration.
 
     Prefers ADOPT over INVESTIGATE. Returns None if no ADOPT or INVESTIGATE
-    B-experiment exists. Used by assembly when no B-category experiment reached
+    training experiment exists. Used by assembly when no training experiment reached
     the ADOPT threshold but INVESTIGATE results are still worth including.
 
     Returns:
-        Best B-category entry dict, or None
+        Best training experiment entry dict, or None
     """
     entries = read_controlled_experiment_log(log_path)
-    b_entries = [e for e in entries if e.get("category") == "B"]
+    b_entries = [e for e in entries if e.get("category") == CATEGORY_TRAINING]
 
     for decision in ("ADOPT", "INVESTIGATE"):
         candidates = [e for e in b_entries if e.get("decision") == decision]

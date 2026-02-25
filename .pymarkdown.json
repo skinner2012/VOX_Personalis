@@ -41,11 +41,11 @@
       "md046",
       "md047",
       "md048"
-    ]
-  },
-  "md013": {
-    "line_length": 100,
-    "code_blocks": false,
-    "tables": false
+    ],
+    "md013": {
+      "line_length": 100,
+      "code_blocks": false,
+      "tables": true
+    }
   }
 }

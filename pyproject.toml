@@ -13,6 +13,7 @@ dependencies = [
     "openai-whisper>=20231117",
     "jiwer>=3.0",
     "torch>=2.0",
+    "scipy>=1.10",
 ]
 
 [project.optional-dependencies]
@@ -33,7 +34,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["scripts"]
-include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "fine_tuning*"]
+include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "fine_tuning*", "error_analysis*"]
 
 [tool.ruff]
 line-length = 100
@@ -61,12 +62,12 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Set to true for stricter checking
 mypy_path = "scripts"
-explicit_package_bases = true
+namespace_packages = false
 
 # HuggingFace libraries do not ship type stubs or py.typed markers
 # See: https://github.com/huggingface/transformers/issues/14833
 [[tool.mypy.overrides]]
-module = ["datasets", "transformers", "transformers.*", "peft", "peft.*"]
+module = ["datasets", "transformers", "transformers.*", "peft", "peft.*", "scipy", "scipy.*"]
 ignore_missing_imports = true
 follow_untyped_imports = false
 

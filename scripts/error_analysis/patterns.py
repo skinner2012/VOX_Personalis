@@ -5,53 +5,7 @@ from typing import Any
 import jiwer
 import pandas as pd
 from baseline_eval.error_analysis import extract_error_patterns
-
-# Contraction map: contracted form (after apostrophe removal) → expanded form.
-# Hardcoded because English contractions are a closed linguistic class — the set is finite
-# and stable. Keys are post-apostrophe-removal forms (e.g. "don't" → "dont"). Only
-# unambiguous pairs are included: keys that cannot be mistaken for a standalone English word
-# (e.g. "were", "its", "lets" were excluded because they are valid words in other contexts).
-CONTRACTION_MAP: dict[str, str] = {
-    "whats": "what is",
-    "dont": "do not",
-    "im": "i am",
-    "cant": "cannot",
-    "wont": "will not",
-    "theyre": "they are",
-    "youre": "you are",
-    "isnt": "is not",
-    "arent": "are not",
-    "wasnt": "was not",
-    "werent": "were not",
-    "doesnt": "does not",
-    "didnt": "did not",
-    "hasnt": "has not",
-    "havent": "have not",
-    "hadnt": "had not",
-    "couldnt": "could not",
-    "wouldnt": "would not",
-    "shouldnt": "should not",
-    "thats": "that is",
-    "theres": "there is",
-    "heres": "here is",
-    "shes": "she is",
-    "whos": "who is",
-    "hows": "how is",
-    "wheres": "where is",
-    "whens": "when is",
-    "youve": "you have",
-    "youll": "you will",
-    "theyll": "they will",
-    "youd": "you would",
-    "theyd": "they would",
-    "ive": "i have",
-    "hes": "he is",
-}
-
-
-def _expand_contractions(text: str, contraction_map: dict[str, str]) -> str:
-    """Replace each token that matches a contraction with its expanded form."""
-    return " ".join(contraction_map.get(w, w) for w in text.split())
+from baseline_eval.normalization import CONTRACTION_MAP, expand_contractions
 
 
 def _wer_score(reference: str, hypothesis: str) -> float:
@@ -109,8 +63,8 @@ def detect_normalization_artifacts(df: pd.DataFrame) -> dict[str, Any]:
     for _, row in df.iterrows():
         ref_orig = row["reference"]
         hyp_orig = row["hypothesis"]
-        ref_norm = _expand_contractions(ref_orig, CONTRACTION_MAP)
-        hyp_norm = _expand_contractions(hyp_orig, CONTRACTION_MAP)
+        ref_norm = expand_contractions(ref_orig)
+        hyp_norm = expand_contractions(hyp_orig)
 
         word_count = (
             int(row["word_count_ref"])

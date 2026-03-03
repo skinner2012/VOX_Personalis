@@ -111,10 +111,29 @@ ______________________________________________________________________
 
 ### 2. Re-scored WER results
 
-| Model      | textnorm_v1 WER | textnorm_v2 WER | Delta  |
-| ---------- | --------------- | --------------- | ------ |
-| Baseline   | (recorded)      | (measured)      | (diff) |
-| Model v1.1 | 0.6404          | ~0.6237         | ~1.67  |
+Re-run output: `out/normalization_fix/20260303-193015/`
+
+| Model      | textnorm_v1 WER | textnorm_v2 WER (measured) | Delta    |
+| ---------- | --------------- | -------------------------- | -------- |
+| Model v1.1 | 0.6404          | 0.6237                     | 1.67 pts |
+
+**How 0.6237 was measured:** The `normalization_audit` in the error analysis
+re-scores each sample by applying `expand_contractions()` to the reference and
+hypothesis text, recomputing WER via jiwer, and computing the corpus-level
+delta. Result: `normalization_wer_contribution_pts = 0.0167`.
+So `0.6404 - 0.0167 = 0.6237` is a real, per-sample re-scoring — not an
+approximation.
+
+**Why `aggregate.wer` still shows 0.6404:** The error analysis reads the `wer`
+column directly from the prediction CSV. Those values were computed during M4
+inference with textnorm_v1 and are not rewritten by re-running this script.
+The 0.6237 will appear in `aggregate.wer` in M5, once inference runs with
+`create_normalizer(version=2)`.
+
+**Regression check:** The re-run output is identical to M4a
+(`out/error_analysis/20260302-202827/`), confirming the DRY refactor
+(CONTRACTION_MAP move from `patterns.py` → `normalization.py`) introduced no
+regressions.
 
 ### 3. Unit tests
 
@@ -126,12 +145,19 @@ Test cases for the contraction expansion step:
 - Empty string and whitespace-only inputs handled
 - Full pipeline (textnorm_v2) produces expected output for sample sentences
 
-### 4. Brief close-out note
+### 4. Close-out
 
-A short section appended to the M4a report or a standalone summary confirming:
+**Status:** M4b complete.
 
-- Measured vs expected WER delta
-- Whether to carry `textnorm_v2` forward as the default normalizer for M5
+- `textnorm_v2` implemented in `scripts/baseline_eval/normalization.py`
+- WER improvement measured on v1.1/base.en: **1.67 pts** (0.6404 → 0.6237)
+- `textnorm_v2` is the **default normalizer for M5** — pass
+  `create_normalizer(version=2)` wherever WER/CER is computed
+
+**Note on M5:** The 1.67 pt improvement is specific to Model v1.1 (base.en).
+small.en may expand contractions more or less aggressively, so the actual
+normalization benefit in M5 will differ. It must be re-measured from M5
+predictions — do not carry 1.67 pts forward as a fixed expectation.
 
 ______________________________________________________________________
 
@@ -163,8 +189,11 @@ python -m scripts.error_analysis \
   --verbose
 ```
 
-Compare aggregate WER in the new `error_distribution_report.json` against the
-M4a baseline (0.6404). Expected: ~0.6237.
+Check `normalization_audit.estimated_wer_contribution_pts` in the new
+`error_distribution_report.json`. Expected: ~0.0167 (same as M4a).
+Aggregate WER will still show 0.6404 — that is correct, as WER in the
+prediction CSVs was pre-computed with textnorm_v1. The 1.67 pt improvement
+will be realized in M5.
 
 ______________________________________________________________________
 

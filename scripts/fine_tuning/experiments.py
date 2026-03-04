@@ -14,6 +14,7 @@ from baseline_eval.normalization import create_normalizer
 from fine_tuning.data import create_hf_dataset, load_manifest, prepare_dataset
 from fine_tuning.evaluation import run_full_evaluation
 from fine_tuning.experiment_log import (
+    CAPACITY_EXPERIMENT_IDS,
     CATEGORY_INFERENCE,
     INFERENCE_EXPERIMENT_IDS,
     TRAINING_EXPERIMENT_IDS,
@@ -28,6 +29,7 @@ from fine_tuning.models import load_checkpoint, setup_model_and_processor
 from fine_tuning.reporting import (
     generate_improvement_analysis_report,
     generate_predictions_csv,
+    generate_report_md,
     generate_v1_1_metrics_json,
     generate_v1_1_predictions_csv,
     write_frozen_config,
@@ -39,6 +41,9 @@ from fine_tuning.training import TrainingConfig, save_checkpoint, set_seeds, tra
 # Measured with DECODE_V1.json (beam=5, temp=0.0) on val split
 # Source: out/fine_tuning/decoding_ablation/eval_20260217-121521/
 _MODEL_V1_VAL_WER = 0.6478
+
+# Model v1.1 locked reference under textnorm_v2 (M4b per-sample re-scoring)
+_MODEL_V1_1_VAL_WER = 0.6237
 
 
 def _load_baseline_metrics(path: str | Path) -> dict:
@@ -86,7 +91,7 @@ def _run_inference_experiment(args: argparse.Namespace, out_dir: Path, verbose: 
         device=args.device,
     )
 
-    normalizer = create_normalizer()
+    normalizer = create_normalizer(version=2)
     val_df = load_manifest(args.manifest_path, "val")
     val_hf = create_hf_dataset(val_df)
     val_prepared = prepare_dataset(val_hf, processor, normalizer, verbose=verbose)
@@ -141,7 +146,7 @@ def _run_inference_experiment(args: argparse.Namespace, out_dir: Path, verbose: 
         "n_runs": n_runs,
         "wer_runs": [round(w, 4) for w in wer_runs],
         "variance": round(variance, 4),
-        "textnorm": "textnorm_v1",
+        "textnorm": "textnorm_v2",
     }
     write_frozen_config(exp_dir, frozen)
 
@@ -208,7 +213,7 @@ def _run_training_experiment(args: argparse.Namespace, out_dir: Path, verbose: b
     beam_size = decode_cfg["beam_size"]
     temperature = float(decode_cfg["temperature"])
 
-    normalizer = create_normalizer()
+    normalizer = create_normalizer(version=2)
     baseline_metrics = _load_baseline_metrics(args.baseline_metrics)
 
     train_df = load_manifest(args.manifest_path, "train")
@@ -323,7 +328,7 @@ def _run_training_experiment(args: argparse.Namespace, out_dir: Path, verbose: b
         },
         "decode_config": args.decode_config,
         "decode_config_hash": decode_hash,
-        "textnorm": "textnorm_v1",
+        "textnorm": "textnorm_v2",
         "textnorm_module": "scripts/baseline_eval/normalization.py",
     }
     write_frozen_config(exp_dir, frozen)
@@ -414,7 +419,7 @@ def _run_assembly(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int
     beam_size = decode_cfg["beam_size"]
     temperature = float(decode_cfg["temperature"])
 
-    normalizer = create_normalizer()
+    normalizer = create_normalizer(version=2)
     baseline_metrics = _load_baseline_metrics(args.baseline_metrics)
     val_df = load_manifest(args.manifest_path, "val")
 
@@ -478,6 +483,194 @@ def _run_assembly(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int
     return 0
 
 
+def _compute_duration_slices(predictions_df: pd.DataFrame) -> dict:
+    """Compute per-duration-bin WER/CER/count for generate_report_md slice_metrics."""
+    result: dict[str, dict[str, float | int]] = {}
+    if "duration_bin" not in predictions_df.columns:
+        return result
+    for bin_name, group in predictions_df.groupby("duration_bin"):
+        result[str(bin_name)] = {
+            "sample_count": len(group),
+            "wer": round(float(group["wer"].mean()), 4) if not group.empty else 0.0,
+            "cer": round(float(group["cer"].mean()), 4)
+            if "cer" in group.columns and not group.empty
+            else 0.0,
+        }
+    return result
+
+
+def _run_capacity_experiment(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int:
+    """M5: small.en LoRA capacity scaling — single training run vs v1.1 baseline."""
+    exp_id = args.experiment_id
+    oom_fallback = exp_id == "small_en_oom_fallback"
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    exp_dir = out_dir / timestamp
+    exp_dir.mkdir(parents=True, exist_ok=True)
+
+    if verbose:
+        print(f"\n=== Capacity scaling: {args.model} (oom_fallback={oom_fallback}) ===")
+        print(f"Output directory: {exp_dir}")
+
+    set_seeds(args.seed)
+    decode_cfg = _load_decode_config(args.decode_config)
+    beam_size = decode_cfg["beam_size"]
+    temperature = float(decode_cfg["temperature"])
+    normalizer = create_normalizer(version=2)
+
+    train_df = load_manifest(args.manifest_path, "train")
+    val_df = load_manifest(args.manifest_path, "val")
+
+    if verbose:
+        print(f"  Train: {len(train_df)} samples | Val: {len(val_df)} samples")
+
+    model, processor, actual_device = setup_model_and_processor(
+        model_name=args.model,
+        lora_rank=args.lora_rank,
+        device=args.device,
+        lora_dropout=args.dropout,
+    )
+
+    train_prepared = prepare_dataset(
+        create_hf_dataset(train_df), processor, normalizer, verbose=verbose
+    )
+    val_prepared = prepare_dataset(
+        create_hf_dataset(val_df), processor, normalizer, verbose=verbose
+    )
+
+    training_config = TrainingConfig(
+        output_dir=str(exp_dir),
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.lr,
+        device=actual_device,
+        disable_tqdm=not verbose,
+        weight_decay=args.weight_decay,
+        seed=args.seed,
+    )
+
+    if verbose:
+        print(f"  lr={args.lr}, dropout={args.dropout}, weight_decay={args.weight_decay}")
+
+    start = time.time()
+    model, _ = train_model(
+        model=model,
+        processor=processor,
+        train_dataset=train_prepared,
+        eval_dataset=val_prepared,
+        normalizer=normalizer,
+        config=training_config,
+        verbose=verbose,
+    )
+    training_time = time.time() - start
+
+    checkpoint_dir = save_checkpoint(
+        model=model,
+        processor=processor,
+        output_dir=exp_dir,
+        training_config={
+            "experiment_id": exp_id,
+            "model": args.model,
+            "lora_rank": args.lora_rank,
+            "epochs": args.epochs,
+            "learning_rate": args.lr,
+            "dropout": args.dropout,
+            "weight_decay": args.weight_decay,
+            "seed": args.seed,
+        },
+    )
+
+    model = model.to(actual_device)
+    baseline_metrics = _load_baseline_metrics(args.baseline_metrics)
+    predictions_df, eval_results = run_full_evaluation(
+        model=model,
+        processor=processor,
+        manifest_df=val_df,
+        prepared_dataset=val_prepared,
+        normalizer=normalizer,
+        baseline_metrics=baseline_metrics,
+        split="val",
+        device=actual_device,
+        verbose=verbose,
+        beam_size=beam_size,
+        temperature=temperature,
+    )
+
+    generate_predictions_csv(predictions_df, exp_dir / "val_predictions.csv")
+
+    agg = eval_results["aggregate"]
+    with open(exp_dir / "val_metrics.json", "w") as f:
+        json.dump({"wer": round(agg["wer"], 4), "cer": round(agg["cer"], 4)}, f, indent=2)
+
+    frozen = {
+        "run_id": exp_id,
+        "description": "Model capacity scaling: base.en → small.en",
+        "timestamp": datetime.now().isoformat(),
+        "dataset": {"manifest_path": args.manifest_path},
+        "base_model": args.model,
+        "lora": {
+            "rank": args.lora_rank,
+            "alpha": args.lora_rank * 2,
+            "dropout": args.dropout,
+        },
+        "training": {
+            "learning_rate": args.lr,
+            "max_epochs": args.epochs,
+            "batch_size": args.batch_size,
+            "gradient_accumulation_steps": 4,
+            "warmup_steps": 100,
+            "weight_decay": args.weight_decay,
+            "oom_fallback": oom_fallback,
+        },
+        "seeds": {
+            "python": args.seed,
+            "numpy": args.seed,
+            "torch": args.seed,
+            "deterministic_mode": False,
+        },
+        "decode_config": args.decode_config,
+        "textnorm": "textnorm_v2",
+        "textnorm_module": "scripts/baseline_eval/normalization.py",
+    }
+    write_frozen_config(exp_dir, frozen)
+
+    baseline_reference = {
+        "baseline_wer": _MODEL_V1_1_VAL_WER,
+        "normalization_version": "textnorm_v2",
+        "metrics_file": "v1.1 reference (M4b, WER=0.6237)",
+    }
+    generate_report_md(
+        model=args.model,
+        approach="capacity_scaling",
+        lora_rank=args.lora_rank,
+        training_time_sec=training_time,
+        device=actual_device,
+        baseline_reference=baseline_reference,
+        eval_results=eval_results,
+        slice_metrics={"by_duration_bin": _compute_duration_slices(predictions_df)},
+        wer_history=None,
+        output_path=exp_dir / "comparison_report.md",
+    )
+
+    v2_wer = agg["wer"]
+    delta_pts = (_MODEL_V1_1_VAL_WER - v2_wer) * 100
+    outcome = (
+        "Breakthrough"
+        if delta_pts >= 5
+        else "Marginal"
+        if delta_pts >= 1
+        else "No effect"
+        if delta_pts > 0
+        else "Regression"
+    )
+    print(f"\n  Result: val WER={v2_wer:.4f}, Δ={delta_pts:+.2f} pts → {outcome}")
+    if verbose:
+        print(f"  Checkpoint: {checkpoint_dir}")
+        print(f"  Report: {exp_dir / 'comparison_report.md'}")
+
+    return 0
+
+
 def run_controlled_experiment_pipeline(args: argparse.Namespace) -> int:
     """
     Controlled experiment pipeline for systematic single-variable ablations.
@@ -488,10 +681,12 @@ def run_controlled_experiment_pipeline(args: argparse.Namespace) -> int:
     """
     verbose = args.verbose and not args.quiet
 
-    if not args.model_v1_checkpoint:
-        raise ValueError("--model_v1_checkpoint required for controlled experiments")
-    if not Path(args.model_v1_checkpoint).exists():
-        raise FileNotFoundError(f"Model v1 checkpoint not found: {args.model_v1_checkpoint}")
+    exp_id = args.experiment_id
+    if exp_id not in CAPACITY_EXPERIMENT_IDS:
+        if not args.model_v1_checkpoint:
+            raise ValueError("--model_v1_checkpoint required for controlled experiments")
+        if not Path(args.model_v1_checkpoint).exists():
+            raise FileNotFoundError(f"Model v1 checkpoint not found: {args.model_v1_checkpoint}")
     if not args.decode_config:
         raise ValueError("--decode_config required for controlled experiments")
     if not Path(args.decode_config).exists():
@@ -500,7 +695,6 @@ def run_controlled_experiment_pipeline(args: argparse.Namespace) -> int:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    exp_id = args.experiment_id
     try:
         if exp_id in INFERENCE_EXPERIMENT_IDS:
             return _run_inference_experiment(args, out_dir, verbose)
@@ -508,6 +702,8 @@ def run_controlled_experiment_pipeline(args: argparse.Namespace) -> int:
             return _run_training_experiment(args, out_dir, verbose)
         elif exp_id == "assemble":
             return _run_assembly(args, out_dir, verbose)
+        elif exp_id in CAPACITY_EXPERIMENT_IDS:
+            return _run_capacity_experiment(args, out_dir, verbose)
         else:
             raise ValueError(f"Unknown experiment_id: {exp_id}")
     except StopIteration:

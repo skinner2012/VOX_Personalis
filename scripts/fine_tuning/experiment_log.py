@@ -10,6 +10,7 @@ CATEGORY_TRAINING = "training"  # training regularization experiments
 # Experiment ID constants — grouped by category
 INFERENCE_EXPERIMENT_IDS = ("inference_1", "inference_2")
 TRAINING_EXPERIMENT_IDS = ("training_1", "training_2", "training_3")
+CAPACITY_EXPERIMENT_IDS = ("small_en", "small_en_oom_fallback")
 
 # Schema for controlled_experiment_log.csv
 CONTROLLED_LOG_COLUMNS = [

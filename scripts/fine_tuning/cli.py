@@ -22,7 +22,11 @@ from fine_tuning.data import (
     prepare_dataset,
 )
 from fine_tuning.evaluation import run_full_evaluation
-from fine_tuning.experiment_log import INFERENCE_EXPERIMENT_IDS, TRAINING_EXPERIMENT_IDS
+from fine_tuning.experiment_log import (
+    CAPACITY_EXPERIMENT_IDS,
+    INFERENCE_EXPERIMENT_IDS,
+    TRAINING_EXPERIMENT_IDS,
+)
 from fine_tuning.experiments import run_controlled_experiment_pipeline
 from fine_tuning.models import (
     load_checkpoint,
@@ -169,10 +173,16 @@ Examples:
     # Controlled experiment flags
     parser.add_argument(
         "--experiment_id",
-        choices=[*INFERENCE_EXPERIMENT_IDS, *TRAINING_EXPERIMENT_IDS, "assemble"],
+        choices=[
+            *INFERENCE_EXPERIMENT_IDS,
+            *TRAINING_EXPERIMENT_IDS,
+            "assemble",
+            *CAPACITY_EXPERIMENT_IDS,
+        ],
         help=(
             "Experiment to run (inference_1/inference_2=hygiene, "
-            "training_1-3=regularization, assemble=build v1.1)"
+            "training_1-3=regularization, assemble=build v1.1, "
+            "small_en/small_en_oom_fallback=capacity scaling)"
         ),
     )
     parser.add_argument(
@@ -287,8 +297,8 @@ def run_training_pipeline(args: argparse.Namespace) -> int:
     except json.JSONDecodeError as e:
         raise ValueError(f"Loading baseline metrics: invalid JSON - {e}") from e
 
-    # Create normalizer (same as S1-M2)
-    normalizer = create_normalizer()
+    # Create normalizer (textnorm_v2)
+    normalizer = create_normalizer(version=2)
 
     if verbose:
         print("\n=== Phase 1: Loading Data ===")
@@ -527,8 +537,8 @@ def run_eval_only_pipeline(args: argparse.Namespace) -> int:
     except json.JSONDecodeError as e:
         raise ValueError(f"Loading baseline metrics: invalid JSON - {e}") from e
 
-    # Create normalizer
-    normalizer = create_normalizer()
+    # Create normalizer (textnorm_v2)
+    normalizer = create_normalizer(version=2)
 
     # Enforce test policy if evaluating on test
     if args.eval_split == "test":

@@ -194,6 +194,11 @@ Examples:
         help="Path to DECODE_V1.json (required for controlled experiments)",
     )
     parser.add_argument(
+        "--error_analysis_csv",
+        help="Path to M4a comparative_analysis.csv"
+        "for diagnostic slices in capacity scaling report)",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,

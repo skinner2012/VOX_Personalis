@@ -371,6 +371,238 @@ def generate_report_md(
 
 
 # ---------------------------------------------------------------------------
+# Capacity-scaling comparison report
+# ---------------------------------------------------------------------------
+
+_V1_1_REF_WER = 0.6237  # locked v1.1 baseline under textnorm_v2
+
+
+def generate_capacity_scaling_report(
+    model: str,
+    lora_rank: int,
+    training_time_sec: float,
+    device: str,
+    v2_wer: float,
+    v2_cer: float,
+    sample_count: int,
+    aggregate: dict,
+    duration_slices: dict,
+    diagnostic_slices: dict | None,
+    wer_history: list[dict] | None,
+    output_path: str | Path,
+) -> Path:
+    """
+    Generate capacity-scaling comparison report (v1.1 vs v2).
+
+    Compares the scaled model against the locked v1.1 reference (not the
+    raw un-finetuned baseline) and includes diagnostic slices for
+    persistent-failure and short-utterance samples.
+
+    Args:
+        model: Model name (e.g. "small.en")
+        lora_rank: LoRA rank used
+        training_time_sec: Training wall-clock time
+        device: Device used for training
+        v2_wer: Model v2 aggregate val WER
+        v2_cer: Model v2 aggregate val CER
+        sample_count: Number of val samples
+        aggregate: Error breakdown dict (insertions, deletions, substitutions)
+        duration_slices: Duration bin metrics
+        diagnostic_slices: Optional dict with "persistent_failure" and
+            "short_utterance" slice metrics
+        wer_history: Optional per-epoch WER history
+        output_path: Output file path
+
+    Returns:
+        Path to generated report
+    """
+    output_path = Path(output_path)
+
+    delta_pts = (_V1_1_REF_WER - v2_wer) * 100
+    outcome = (
+        "Breakthrough"
+        if delta_pts >= 5
+        else "Marginal"
+        if delta_pts >= 1
+        else "No effect"
+        if delta_pts > 0
+        else "Regression"
+    )
+    abs_improvement = _V1_1_REF_WER - v2_wer
+    rel_improvement = (abs_improvement / _V1_1_REF_WER) * 100
+
+    lines = [
+        "# Capacity Scaling — Comparison Report",
+        "",
+        "## 1. Overview",
+        "",
+        f"- **Model:** {model} (244M params)",
+        f"- **Method:** LoRA (rank={lora_rank})",
+        f"- **Device:** {device}",
+        f"- **Training time:** {training_time_sec / 60:.1f} minutes",
+        f"- **Created:** {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        "- **Normalization:** textnorm_v2",
+        "",
+        "## 2. Aggregate Comparison (v1.1 vs v2)",
+        "",
+        "| Model | Base | Params | textnorm | Val WER | Delta vs v1.1 |",
+        "|-------|------|--------|----------|---------|---------------|",
+        f"| v1.1 | base.en | 74M | v2 | {_V1_1_REF_WER:.4f} | — |",
+        f"| **v2** | **{model}** | **244M** | **v2** "
+        f"| **{v2_wer:.4f}** | **{delta_pts:+.2f} pts** |",
+        "",
+        f"Val samples: {sample_count} | "
+        f"Absolute improvement: {abs_improvement:.4f} | "
+        f"Relative: {rel_improvement:.1f}%",
+        "",
+        "## 3. Outcome Classification",
+        "",
+        f"**{outcome}** (ΔWER = {delta_pts:+.2f} pts vs v1.1)",
+        "",
+        "| Label | Criterion |",
+        "|-------|-----------|",
+    ]
+
+    for label, criterion in [
+        ("Breakthrough", "ΔWER >= 5 pts"),
+        ("Marginal", "ΔWER 1-4.9 pts"),
+        ("No effect", "ΔWER < 1 pt"),
+        ("Regression", "v2 WER > v1.1"),
+    ]:
+        marker = f"**{label}**" if label == outcome else label
+        lines.append(f"| {marker} | {criterion} |")
+
+    lines.append("")
+
+    # Diagnostic slices
+    if diagnostic_slices:
+        lines.extend(
+            [
+                "## 4. Diagnostic Slices",
+                "",
+            ]
+        )
+
+        pf = diagnostic_slices.get("persistent_failure")
+        su = diagnostic_slices.get("short_utterance")
+
+        lines.extend(
+            [
+                "| Slice | Samples | v1.1 WER | v2 WER | Delta |",
+                "|-------|---------|----------|--------|-------|",
+            ]
+        )
+
+        if pf:
+            pf_delta = (pf["v1_1_wer"] - pf["v2_wer"]) * 100
+            lines.append(
+                f"| Persistent failure (WER > 0.5 in baseline & v1.1) "
+                f"| {pf['sample_count']} "
+                f"| {pf['v1_1_wer']:.4f} "
+                f"| {pf['v2_wer']:.4f} "
+                f"| {pf_delta:+.2f} pts |"
+            )
+        if su:
+            su_delta = (su["v1_1_wer"] - su["v2_wer"]) * 100
+            lines.append(
+                f"| Short utterance (duration <= 3s) "
+                f"| {su['sample_count']} "
+                f"| {su['v1_1_wer']:.4f} "
+                f"| {su['v2_wer']:.4f} "
+                f"| {su_delta:+.2f} pts |"
+            )
+
+        lines.append("")
+
+        if pf:
+            lines.append(
+                "The persistent-failure slice is the primary hypothesis check (H2: capacity)."
+            )
+        if su:
+            lines.append(
+                "The short-utterance slice tracks the hallucination pattern "
+                "flagged by advisor review."
+            )
+        lines.append("")
+        if pf and pf["v1_1_wer"] > 1.0:
+            lines.append(
+                "*Note: WER > 1.0 indicates more error words than reference words, "
+                "typically caused by heavy insertion/hallucination errors.*"
+            )
+            lines.append("")
+
+    # Duration breakdown
+    if duration_slices:
+        section_num = 5 if diagnostic_slices else 4
+        lines.extend(
+            [
+                f"## {section_num}. Performance by Duration",
+                "",
+                "| Duration Bin | Samples | WER | CER |",
+                "|--------------|---------|-----|-----|",
+            ]
+        )
+        for bin_name, m in sorted(duration_slices.items()):
+            lines.append(f"| {bin_name} | {m['sample_count']} | {m['wer']:.2%} | {m['cer']:.2%} |")
+        lines.append("")
+
+    # Error breakdown
+    section_num = 6 if diagnostic_slices else 5
+    lines.extend(
+        [
+            f"## {section_num}. Error Breakdown",
+            "",
+            "| Error Type | Count |",
+            "|------------|-------|",
+            f"| Insertions | {aggregate.get('insertions', 0)} |",
+            f"| Deletions | {aggregate.get('deletions', 0)} |",
+            f"| Substitutions | {aggregate.get('substitutions', 0)} |",
+            "",
+        ]
+    )
+
+    # Training history
+    if wer_history:
+        section_num = 7 if diagnostic_slices else 6
+        lines.extend(
+            [
+                f"## {section_num}. Training History",
+                "",
+                "| Epoch | Val WER |",
+                "|-------|---------|",
+            ]
+        )
+        for entry in wer_history:
+            lines.append(f"| {entry.get('epoch', 0):.1f} | {entry.get('wer', 0):.2%} |")
+        lines.append("")
+
+    # Key takeaways
+    section_num = (7 if diagnostic_slices else 6) + (1 if wer_history else 0)
+    lines.extend(
+        [
+            f"## {section_num}. Key Takeaways",
+            "",
+            f"- **{outcome}:** {delta_pts:+.2f} pts WER improvement "
+            f"over v1.1 ({_V1_1_REF_WER:.2%} -> {v2_wer:.2%})",
+            f"- Model trained on {device.upper()} in {training_time_sec / 60:.1f} minutes",
+            f"- LoRA rank {lora_rank} with 0.73% trainable parameters",
+        ]
+    )
+    if diagnostic_slices and diagnostic_slices.get("persistent_failure"):
+        pf = diagnostic_slices["persistent_failure"]
+        pf_delta = (pf["v1_1_wer"] - pf["v2_wer"]) * 100
+        lines.append(
+            f"- Persistent failures (n={pf['sample_count']}): {pf_delta:+.2f} pts improvement"
+        )
+    lines.append("")
+
+    with open(output_path, "w") as f:
+        f.write("\n".join(lines))
+
+    return output_path
+
+
+# ---------------------------------------------------------------------------
 # Controlled experiment output writers
 # ---------------------------------------------------------------------------
 

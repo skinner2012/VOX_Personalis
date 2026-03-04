@@ -27,9 +27,9 @@ from fine_tuning.experiment_log import (
 )
 from fine_tuning.models import load_checkpoint, setup_model_and_processor
 from fine_tuning.reporting import (
+    generate_capacity_scaling_report,
     generate_improvement_analysis_report,
     generate_predictions_csv,
-    generate_report_md,
     generate_v1_1_metrics_json,
     generate_v1_1_predictions_csv,
     write_frozen_config,
@@ -484,7 +484,7 @@ def _run_assembly(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int
 
 
 def _compute_duration_slices(predictions_df: pd.DataFrame) -> dict:
-    """Compute per-duration-bin WER/CER/count for generate_report_md slice_metrics."""
+    """Compute per-duration-bin WER/CER/count for report slice_metrics."""
     result: dict[str, dict[str, float | int]] = {}
     if "duration_bin" not in predictions_df.columns:
         return result
@@ -497,6 +497,64 @@ def _compute_duration_slices(predictions_df: pd.DataFrame) -> dict:
             else 0.0,
         }
     return result
+
+
+def _compute_diagnostic_slices(
+    predictions_df: pd.DataFrame,
+    error_analysis_csv: str | Path | None,
+) -> dict | None:
+    """Compute persistent-failure and short-utterance diagnostic slices.
+
+    Args:
+        predictions_df: v2 val predictions with pair_sha256, duration_sec, wer
+        error_analysis_csv: Path to M4a comparative_analysis.csv (has
+            persistent_failure bool and v1_1_wer per sample)
+
+    Returns:
+        Dict with "persistent_failure" and "short_utterance" slice metrics,
+        or None if error_analysis_csv is not available.
+    """
+    slices: dict = {}
+
+    # --- Short utterance slice (always available) ---
+    short = predictions_df[predictions_df["duration_sec"] <= 3.0]
+    if not short.empty:
+        slices["short_utterance"] = {
+            "sample_count": len(short),
+            "v2_wer": round(float(short["wer"].mean()), 4),
+            # v1.1 WER filled below if error_analysis_csv is available
+            "v1_1_wer": 0.0,
+        }
+
+    # --- Persistent failure slice (needs M4a data) ---
+    if not error_analysis_csv or not Path(error_analysis_csv).exists():
+        # Without M4a data, we can only provide v2 numbers for short utterance
+        # and skip persistent failure entirely
+        if slices.get("short_utterance"):
+            slices["short_utterance"]["v1_1_wer"] = 0.0
+        return slices if slices else None
+
+    m4a = pd.read_csv(error_analysis_csv)
+
+    # Persistent failures: samples flagged by M4a
+    pf_hashes = set(m4a.loc[m4a["persistent_failure"] == True, "pair_sha256"])  # noqa: E712
+    v2_pf = predictions_df[predictions_df["pair_sha256"].isin(pf_hashes)]
+    m4a_pf = m4a[m4a["persistent_failure"] == True]  # noqa: E712
+
+    if not v2_pf.empty:
+        slices["persistent_failure"] = {
+            "sample_count": len(v2_pf),
+            "v1_1_wer": round(float(m4a_pf["v1_1_wer"].mean()), 4),
+            "v2_wer": round(float(v2_pf["wer"].mean()), 4),
+        }
+
+    # Fill v1.1 WER for short utterance from M4a data
+    if slices.get("short_utterance"):
+        m4a_short = m4a[m4a["duration_sec"] <= 3.0]
+        if not m4a_short.empty:
+            slices["short_utterance"]["v1_1_wer"] = round(float(m4a_short["v1_1_wer"].mean()), 4)
+
+    return slices if slices else None
 
 
 def _run_capacity_experiment(args: argparse.Namespace, out_dir: Path, verbose: bool) -> int:
@@ -634,20 +692,22 @@ def _run_capacity_experiment(args: argparse.Namespace, out_dir: Path, verbose: b
     }
     write_frozen_config(exp_dir, frozen)
 
-    baseline_reference = {
-        "baseline_wer": _MODEL_V1_1_VAL_WER,
-        "normalization_version": "textnorm_v2",
-        "metrics_file": "v1.1 reference (M4b, WER=0.6237)",
-    }
-    generate_report_md(
+    diagnostic_slices = _compute_diagnostic_slices(
+        predictions_df,
+        getattr(args, "error_analysis_csv", None),
+    )
+
+    generate_capacity_scaling_report(
         model=args.model,
-        approach="capacity_scaling",
         lora_rank=args.lora_rank,
         training_time_sec=training_time,
         device=actual_device,
-        baseline_reference=baseline_reference,
-        eval_results=eval_results,
-        slice_metrics={"by_duration_bin": _compute_duration_slices(predictions_df)},
+        v2_wer=agg["wer"],
+        v2_cer=agg["cer"],
+        sample_count=agg["sample_count"],
+        aggregate=agg,
+        duration_slices=_compute_duration_slices(predictions_df),
+        diagnostic_slices=diagnostic_slices,
         wer_history=None,
         output_path=exp_dir / "comparison_report.md",
     )

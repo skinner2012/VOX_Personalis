@@ -1,0 +1,70 @@
+{
+  "dataset_size": {
+    "num_manifest_rows": 3623,
+    "num_unique_files": 3623,
+    "total_duration_sec": 16843.52,
+    "total_duration_hours": 4.68,
+    "duration_histogram": {
+      "(-0.001, 1.0]": 0,
+      "(1.0, 3.0]": 1054,
+      "(3.0, 10.0]": 2393,
+      "(10.0, 30.0]": 176,
+      "(30.0, 60.0]": 0,
+      "(60.0, inf]": 0
+    },
+    "transcript_len_histogram": {
+      "(-0.001, 10.0]": 487,
+      "(10.0, 50.0]": 2915,
+      "(50.0, 100.0]": 214,
+      "(100.0, 200.0]": 7,
+      "(200.0, inf]": 0
+    }
+  },
+  "audio_distributions": {
+    "sample_rate_distribution": {
+      "44100": 3623
+    },
+    "channels_distribution": {
+      "1": 3623
+    },
+    "format_distribution": {
+      "WAV": 3623
+    },
+    "read_failure_count": 0,
+    "missing_file_count": 0
+  },
+  "transcript_sanity": {
+    "blank_transcript_count": 0,
+    "very_short_transcript_count": 621,
+    "duplicate_transcript_count": 685
+  },
+  "silence_noise_coarse": {
+    "silence_ratio_distribution": {
+      "(-0.001, 0.1]": 16,
+      "(0.1, 0.2]": 309,
+      "(0.2, 0.4]": 2294,
+      "(0.4, 0.6]": 892,
+      "(0.6, 1.0]": 112
+    },
+    "longest_silence_distribution": {
+      "(-0.001, 0.5]": 503,
+      "(0.5, 1.0]": 1726,
+      "(1.0, 2.0]": 1338,
+      "(2.0, 5.0]": 56,
+      "(5.0, inf]": 0
+    },
+    "rms_db_distribution": {
+      "(-inf, -60.0]": 0,
+      "(-60.0, -40.0]": 0,
+      "(-40.0, -20.0]": 1936,
+      "(-20.0, -10.0]": 1678,
+      "(-10.0, inf]": 9
+    }
+  },
+  "manifest_integrity": {
+    "num_rows": 3623,
+    "duplicate_file_count": 0,
+    "empty_transcript_count": 0,
+    "empty_filename_count": 0
+  }
+}

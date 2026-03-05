@@ -1,0 +1,2 @@
+experiment_id,hypothesis_id,timestamp,intervention,experiment_type,model_v1_1_val_wer,experiment_val_wer,val_wer_delta,hypothesis_supported,decision,notes
+m4a_exp_1,H1,2026-03-02T20:28:27.525546+00:00,Apply contraction expansion (CONTRACTION_MAP) to both reference and hypothesis before WER scoring. Re-score all val predictions.,normalization-only,0.6404,0.6237,0.0167,True,VALIDATED,50 samples affected. WER reduction: 1.67 pts. 20 distinct contraction pairs detected.

@@ -1,0 +1,59 @@
+{
+  "input_manifest_rows": 3623,
+  "excluded_count": 0,
+  "excluded_breakdown": {},
+  "included_count": 3623,
+  "split_counts": {
+    "train": 2897,
+    "test": 365,
+    "val": 361
+  },
+  "split_durations_sec": {
+    "test": 1735.091,
+    "train": 13458.783,
+    "val": 1649.645
+  },
+  "split_durations_hours": {
+    "test": 0.4819697222222222,
+    "train": 3.738550833333333,
+    "val": 0.4582347222222222
+  },
+  "split_duration_distributions": {
+    "train": {
+      "(3.0, 10]": 1914,
+      "(1.0, 3]": 843,
+      "(10.0, 30]": 140,
+      "(0, 1]": 0,
+      "(30.0, inf]": 0
+    },
+    "val": {
+      "(3.0, 10]": 239,
+      "(1.0, 3]": 105,
+      "(10.0, 30]": 17,
+      "(0, 1]": 0,
+      "(30.0, inf]": 0
+    },
+    "test": {
+      "(3.0, 10]": 240,
+      "(1.0, 3]": 106,
+      "(10.0, 30]": 19,
+      "(0, 1]": 0,
+      "(30.0, inf]": 0
+    }
+  },
+  "duplicate_audio_different_transcript_count": 0,
+  "temporal_clusters_crossing_splits": 38,
+  "temporal_check_status": "completed",
+  "min_sample_validation_passed": true,
+  "min_duration_validation_passed": true,
+  "split_quality_warnings": [],
+  "dataset_version": "v1",
+  "created_timestamp": "2026-02-06T14:27:59.536364",
+  "spec_version": null,
+  "seed": 42,
+  "tool_versions": {
+    "python": "3.13.7",
+    "pandas": "3.0.0",
+    "numpy": "2.3.5"
+  }
+}

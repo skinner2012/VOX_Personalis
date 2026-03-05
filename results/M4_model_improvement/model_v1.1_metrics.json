@@ -1,0 +1,22 @@
+{
+  "model_version": "v1.1",
+  "base_model": "whisper-base.en",
+  "experiments_included": [
+    "inference_1",
+    "training_2"
+  ],
+  "model_v1_reference": {
+    "checkpoint_path": "./out/fine_tuning/20260216-225002/checkpoint",
+    "val_wer": 0.6478,
+    "lora_rank": 16
+  },
+  "val_results": {
+    "wer": 0.6404,
+    "cer": 0.4878,
+    "absolute_improvement_pts": 0.0074,
+    "relative_improvement_pct": 1.14
+  },
+  "by_duration_bin": {},
+  "by_error_type": {},
+  "created_timestamp": "2026-02-25T06:36:55.654126+00:00"
+}

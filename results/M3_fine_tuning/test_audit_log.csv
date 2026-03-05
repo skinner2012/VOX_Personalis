@@ -1,0 +1,3 @@
+run_id,model,test_run_timestamp,git_commit_sha,config_hash,val_wer,test_wer,justification
+20260217-115013,base.en,2026-02-17T19:51:14.808544+00:00,ea56716325f0fc7de40057cd0c593226c43a9024,c7644d890ba8924c9ddb1f050fe96c0f3220ff2be378ccb1a518150bee3d5b02,0.695356738391846,0.8392461197339246,Best val WER (68.23%) from r=8 vs r=16 ablation. Config frozen in step5_frozen_config.json
+20260217-124307,base.en,2026-02-17T20:44:51.257166+00:00,ea56716325f0fc7de40057cd0c593226c43a9024,c7644d890ba8924c9ddb1f050fe96c0f3220ff2be378ccb1a518150bee3d5b02,0.695356738391846,0.664079822616408,"Re-run with optimal decoding (beam=5, temp=0.0). Previous test used temp=1.0 which enabled sampling and degraded WER by ~15pts as shown in val ablation."

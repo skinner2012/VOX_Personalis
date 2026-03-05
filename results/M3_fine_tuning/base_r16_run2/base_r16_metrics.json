@@ -1,0 +1,110 @@
+{
+  "model": "base.en",
+  "approach": "base_r16",
+  "method": "lora",
+  "lora_rank": 16,
+  "epochs_trained": 3.0,
+  "training_time_sec": 2186.340523958206,
+  "device": "cpu",
+  "baseline_reference": {
+    "metrics_file": "./out/baseline_eval/20260210-220646/baseline_metrics.json",
+    "baseline_wer": 2.0583,
+    "normalization_version": "textnorm_v1",
+    "jiwer_version": "unknown"
+  },
+  "created_timestamp": "2026-02-17T19:34:03.884538+00:00",
+  "val_results": {
+    "sample_count": 361,
+    "total_duration_sec": 1649.645,
+    "total_words": "1766",
+    "total_chars": "8518",
+    "wer": 0.695356738391846,
+    "cer": 0.4658381890948465,
+    "insertions": 217,
+    "deletions": 85,
+    "substitutions": 926,
+    "baseline_wer": 2.0583,
+    "finetuned_wer": 0.695356738391846,
+    "absolute_improvement": 1.362943261608154,
+    "relative_improvement_pct": 66.21693929981801,
+    "improved": "True"
+  },
+  "by_duration_bin": {
+    "(3.0, 10]": {
+      "sample_count": 239,
+      "wer": 0.6990668740279938,
+      "cer": 0.4655023912712694
+    },
+    "(1.0, 3]": {
+      "sample_count": 105,
+      "wer": 0.6222222222222222,
+      "cer": 0.4623503375913814
+    },
+    "(10.0, 30]": {
+      "sample_count": 17,
+      "wer": 0.7666666666666667,
+      "cer": 0.49210172366536126
+    }
+  },
+  "by_error_type": {
+    "high_error": {
+      "sample_count": 351,
+      "wer": 0.7028438769587928,
+      "cer": 0.4700637395670253,
+      "baseline_wer": 2.1726267906069316,
+      "improvement": 1.4697829136481388
+    },
+    "deletion_heavy": {
+      "sample_count": 1,
+      "wer": 0.0,
+      "cer": 0.0,
+      "baseline_wer": 0.5,
+      "improvement": 0.5
+    },
+    "low_error": {
+      "sample_count": 2,
+      "wer": 0.8,
+      "cer": 0.5735294117647058,
+      "baseline_wer": 0.0,
+      "improvement": -0.8
+    },
+    "substitution_heavy": {
+      "sample_count": 3,
+      "wer": 0.375,
+      "cer": 0.2726902726902727,
+      "baseline_wer": 0.35000000000000003,
+      "improvement": -0.024999999999999967
+    },
+    "mixed": {
+      "sample_count": 2,
+      "wer": 0.36363636363636365,
+      "cer": 0.42857142857142855,
+      "baseline_wer": 0.39285714285714285,
+      "improvement": 0.029220779220779203
+    },
+    "insertion_heavy": {
+      "sample_count": 2,
+      "wer": 0.3333333333333333,
+      "cer": 0.17647058823529413,
+      "baseline_wer": 0.35,
+      "improvement": 0.016666666666666663
+    }
+  },
+  "training_history": [
+    {
+      "epoch": 1.0,
+      "wer": 0.8374858437146093,
+      "step": 182
+    },
+    {
+      "epoch": 2.0,
+      "wer": 0.7095130237825594,
+      "step": 364
+    },
+    {
+      "epoch": 3.0,
+      "wer": 0.695356738391846,
+      "step": 546
+    }
+  ]
+}

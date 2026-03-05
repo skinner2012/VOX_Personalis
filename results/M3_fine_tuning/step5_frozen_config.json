@@ -1,0 +1,39 @@
+{
+  "dataset": {
+    "manifest_path": "out/dataset_v1/20260206-142756/dataset_v1_manifest.csv",
+    "manifest_sha256_prefix": "4f101755c94ed9a1",
+    "version": "v1 (20260206-142756)"
+  },
+  "checkpoint": {
+    "experiment_id": "20260216-225002",
+    "path": "out/fine_tuning/20260216-225002/checkpoint",
+    "model": "base.en",
+    "lora_rank": 16,
+    "val_wer": 0.6823329558323896
+  },
+  "decoding": {
+    "max_length": 225,
+    "beam_size": 5,
+    "temperature": 0.0,
+    "language": null,
+    "task": null,
+    "_note": "Updated after decoding ablation: beam=5, temp=0.0 yields best WER (64.78% val, 66.41% test)"
+  },
+  "normalization": {
+    "version": "textnorm_v1",
+    "same_as_baseline": true
+  },
+  "test_set": {
+    "samples": 365,
+    "total_duration_sec": 1735.091,
+    "total_words": 1804
+  },
+  "final_test_results": {
+    "test_wer": 0.6641,
+    "test_cer": 0.5075,
+    "baseline_wer": 2.3869,
+    "relative_improvement_pct": 72.2,
+    "decoding_config": "beam=5, temp=0.0",
+    "evaluated_at": "2026-02-17T12:43:07+00:00"
+  }
+}

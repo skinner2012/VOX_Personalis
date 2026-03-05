@@ -1,0 +1,110 @@
+{
+  "model": "base.en",
+  "approach": "base_r8",
+  "method": "lora",
+  "lora_rank": 8,
+  "epochs_trained": 3.0,
+  "training_time_sec": 1920.131314277649,
+  "device": "cpu",
+  "baseline_reference": {
+    "metrics_file": "./out/baseline_eval/20260210-220646/baseline_metrics.json",
+    "baseline_wer": 2.0583,
+    "normalization_version": "textnorm_v1",
+    "jiwer_version": "unknown"
+  },
+  "created_timestamp": "2026-02-17T18:54:23.755367+00:00",
+  "val_results": {
+    "sample_count": 361,
+    "total_duration_sec": 1649.645,
+    "total_words": "1766",
+    "total_chars": "8518",
+    "wer": 0.7684031710079275,
+    "cer": 0.522011429581309,
+    "insertions": 243,
+    "deletions": 91,
+    "substitutions": 1023,
+    "baseline_wer": 2.0583,
+    "finetuned_wer": 0.7684031710079275,
+    "absolute_improvement": 1.2898968289920725,
+    "relative_improvement_pct": 62.66806728815394,
+    "improved": "True"
+  },
+  "by_duration_bin": {
+    "(3.0, 10]": {
+      "sample_count": 239,
+      "wer": 0.7706065318818041,
+      "cer": 0.5119395204277727
+    },
+    "(1.0, 3]": {
+      "sample_count": 105,
+      "wer": 0.6962962962962963,
+      "cer": 0.5403732578787864
+    },
+    "(10.0, 30]": {
+      "sample_count": 17,
+      "wer": 0.8476190476190476,
+      "cer": 0.5501993305495488
+    }
+  },
+  "by_error_type": {
+    "high_error": {
+      "sample_count": 351,
+      "wer": 0.7777132907719094,
+      "cer": 0.5278260517084634,
+      "baseline_wer": 2.1726267906069316,
+      "improvement": 1.394913499835022
+    },
+    "deletion_heavy": {
+      "sample_count": 1,
+      "wer": 0.0,
+      "cer": 0.0,
+      "baseline_wer": 0.5,
+      "improvement": 0.5
+    },
+    "low_error": {
+      "sample_count": 2,
+      "wer": 0.8,
+      "cer": 0.5735294117647058,
+      "baseline_wer": 0.0,
+      "improvement": -0.8
+    },
+    "substitution_heavy": {
+      "sample_count": 3,
+      "wer": 0.375,
+      "cer": 0.3097273097273097,
+      "baseline_wer": 0.35000000000000003,
+      "improvement": -0.024999999999999967
+    },
+    "mixed": {
+      "sample_count": 2,
+      "wer": 0.36363636363636365,
+      "cer": 0.375,
+      "baseline_wer": 0.39285714285714285,
+      "improvement": 0.029220779220779203
+    },
+    "insertion_heavy": {
+      "sample_count": 2,
+      "wer": 0.3333333333333333,
+      "cer": 0.17647058823529413,
+      "baseline_wer": 0.35,
+      "improvement": 0.016666666666666663
+    }
+  },
+  "training_history": [
+    {
+      "epoch": 1.0,
+      "wer": 0.9184597961494904,
+      "step": 182
+    },
+    {
+      "epoch": 2.0,
+      "wer": 0.9235560588901472,
+      "step": 364
+    },
+    {
+      "epoch": 3.0,
+      "wer": 0.7684031710079275,
+      "step": 546
+    }
+  ]
+}

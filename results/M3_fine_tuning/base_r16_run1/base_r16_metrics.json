@@ -1,0 +1,67 @@
+{
+  "model": "base.en",
+  "approach": "base_r16",
+  "method": "lora",
+  "lora_rank": 16,
+  "epochs_trained": 3.0,
+  "training_time_sec": 1892.0528593063354,
+  "device": "cpu",
+  "baseline_reference": {
+    "metrics_file": "./out/baseline_eval/20260210-220646/baseline_metrics.json",
+    "baseline_wer": 2.0583,
+    "normalization_version": "textnorm_v1",
+    "jiwer_version": "unknown"
+  },
+  "created_timestamp": "2026-02-17T07:22:46.453446+00:00",
+  "val_results": {
+    "sample_count": 361,
+    "total_duration_sec": 1649.645,
+    "total_words": "1766",
+    "total_chars": "8518",
+    "wer": 0.6823329558323896,
+    "cer": 0.45335602526623436,
+    "insertions": 219,
+    "deletions": 80,
+    "substitutions": 906,
+    "baseline_wer": 2.0583,
+    "finetuned_wer": 0.6823329558323896,
+    "absolute_improvement": 1.3759670441676104,
+    "relative_improvement_pct": 66.84968392205268,
+    "improved": "True"
+  },
+  "by_duration_bin": {
+    "(3.0, 10]": {
+      "sample_count": 239,
+      "wer": 0.6796267496111975,
+      "cer": 0.44686770571640766
+    },
+    "(1.0, 3]": {
+      "sample_count": 105,
+      "wer": 0.6148148148148148,
+      "cer": 0.4606901459311897
+    },
+    "(10.0, 30]": {
+      "sample_count": 17,
+      "wer": 0.7857142857142857,
+      "cer": 0.4992751842420129
+    }
+  },
+  "by_error_type": {},
+  "training_history": [
+    {
+      "epoch": 1.0,
+      "wer": 0.8278595696489242,
+      "step": 182
+    },
+    {
+      "epoch": 2.0,
+      "wer": 0.7089467723669309,
+      "step": 364
+    },
+    {
+      "epoch": 3.0,
+      "wer": 0.6823329558323896,
+      "step": 546
+    }
+  ]
+}

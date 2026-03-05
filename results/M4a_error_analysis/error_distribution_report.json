@@ -1,0 +1,271 @@
+{
+  "model_version": "v1.1",
+  "val_sample_count": 361,
+  "aggregate": {
+    "wer": 0.6404,
+    "cer": 0.4661,
+    "total_reference_words": 1766,
+    "total_errors": 1131,
+    "insertions": 242,
+    "deletions": 65,
+    "substitutions": 824
+  },
+  "error_concentration": {
+    "top_10pct_error_share": 0.2776,
+    "top_20pct_error_share": 0.4571,
+    "zero_wer_sample_count": 71,
+    "catastrophic_sample_count": 64
+  },
+  "by_duration_bin": {
+    "(1.0, 3]": {
+      "sample_count": 105,
+      "total_words": 270,
+      "total_errors": 157,
+      "wer": 0.5815,
+      "cer": 0.3835,
+      "insertions": 31,
+      "deletions": 12,
+      "substitutions": 114,
+      "insertion_pct": 0.1975,
+      "deletion_pct": 0.0764,
+      "substitution_pct": 0.7261,
+      "mean_wer": 0.7311,
+      "median_wer": 0.6667
+    },
+    "(10.0, 30]": {
+      "sample_count": 17,
+      "total_words": 210,
+      "total_errors": 138,
+      "wer": 0.6571,
+      "cer": 0.3998,
+      "insertions": 32,
+      "deletions": 8,
+      "substitutions": 98,
+      "insertion_pct": 0.2319,
+      "deletion_pct": 0.058,
+      "substitution_pct": 0.7101,
+      "mean_wer": 0.7422,
+      "median_wer": 0.5333
+    },
+    "(3.0, 10]": {
+      "sample_count": 239,
+      "total_words": 1286,
+      "total_errors": 836,
+      "wer": 0.6501,
+      "cer": 0.4939,
+      "insertions": 179,
+      "deletions": 45,
+      "substitutions": 612,
+      "insertion_pct": 0.2141,
+      "deletion_pct": 0.0538,
+      "substitution_pct": 0.7321,
+      "mean_wer": 0.692,
+      "median_wer": 0.6667
+    }
+  },
+  "hallucination": {
+    "count": 32,
+    "percentage": 0.0886,
+    "common_inserted_tokens": [
+      {
+        "token": "you",
+        "count": 10
+      },
+      {
+        "token": "i",
+        "count": 6
+      },
+      {
+        "token": "to",
+        "count": 4
+      },
+      {
+        "token": "are",
+        "count": 4
+      },
+      {
+        "token": "how",
+        "count": 3
+      },
+      {
+        "token": "it",
+        "count": 3
+      },
+      {
+        "token": "the",
+        "count": 3
+      },
+      {
+        "token": "can",
+        "count": 3
+      },
+      {
+        "token": "do",
+        "count": 2
+      },
+      {
+        "token": "for",
+        "count": 2
+      },
+      {
+        "token": "a",
+        "count": 2
+      },
+      {
+        "token": "is",
+        "count": 2
+      },
+      {
+        "token": "say",
+        "count": 2
+      },
+      {
+        "token": "wait",
+        "count": 1
+      },
+      {
+        "token": "seven",
+        "count": 1
+      },
+      {
+        "token": "six",
+        "count": 1
+      },
+      {
+        "token": "what",
+        "count": 1
+      },
+      {
+        "token": "bet",
+        "count": 1
+      },
+      {
+        "token": "going",
+        "count": 1
+      },
+      {
+        "token": "horta",
+        "count": 1
+      }
+    ]
+  },
+  "normalization_audit": {
+    "artifact_count": 50,
+    "estimated_wer_contribution_pts": 0.0167,
+    "contraction_pairs": [
+      {
+        "reference_token": "dont",
+        "hypothesis_token": "dont",
+        "count": 7
+      },
+      {
+        "reference_token": "whats",
+        "hypothesis_token": "what",
+        "count": 6
+      },
+      {
+        "reference_token": "i",
+        "hypothesis_token": "im",
+        "count": 5
+      },
+      {
+        "reference_token": "im",
+        "hypothesis_token": "im",
+        "count": 4
+      },
+      {
+        "reference_token": "thats",
+        "hypothesis_token": "that",
+        "count": 4
+      },
+      {
+        "reference_token": "dont",
+        "hypothesis_token": "is",
+        "count": 3
+      },
+      {
+        "reference_token": "im",
+        "hypothesis_token": "i",
+        "count": 2
+      },
+      {
+        "reference_token": "ive",
+        "hypothesis_token": "i",
+        "count": 2
+      },
+      {
+        "reference_token": "a",
+        "hypothesis_token": "youre",
+        "count": 1
+      },
+      {
+        "reference_token": "amber",
+        "hypothesis_token": "im",
+        "count": 1
+      },
+      {
+        "reference_token": "isnt",
+        "hypothesis_token": "it",
+        "count": 1
+      },
+      {
+        "reference_token": "say",
+        "hypothesis_token": "im",
+        "count": 1
+      },
+      {
+        "reference_token": "she",
+        "hypothesis_token": "shes",
+        "count": 1
+      },
+      {
+        "reference_token": "thought",
+        "hypothesis_token": "dont",
+        "count": 1
+      },
+      {
+        "reference_token": "theyre",
+        "hypothesis_token": "said",
+        "count": 1
+      },
+      {
+        "reference_token": "this",
+        "hypothesis_token": "dont",
+        "count": 1
+      },
+      {
+        "reference_token": "scattered",
+        "hypothesis_token": "cant",
+        "count": 1
+      },
+      {
+        "reference_token": "thats",
+        "hypothesis_token": "is",
+        "count": 1
+      },
+      {
+        "reference_token": "win",
+        "hypothesis_token": "couldnt",
+        "count": 1
+      },
+      {
+        "reference_token": "who",
+        "hypothesis_token": "im",
+        "count": 1
+      }
+    ]
+  },
+  "audio_quality_overlap": {
+    "join_match_rate": 1.0,
+    "poor_audio_in_top50_worst": 12,
+    "poor_audio_in_top50_worst_pct": 0.24,
+    "wer_vs_silence_ratio_corr": {
+      "pearson": 0.0956,
+      "spearman": 0.0583
+    },
+    "wer_vs_rms_db_corr": {
+      "pearson": -0.0428,
+      "spearman": -0.0703
+    }
+  }
+}

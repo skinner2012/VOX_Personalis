@@ -1,0 +1,35 @@
+[
+  {
+    "hypothesis_id": "H1",
+    "observed_pattern": "Contraction mismatch inflates WER: model expands contractions (e.g. 'whats' vs 'what is') but textnorm_v1 only strips apostrophes.",
+    "evidence": "50 val samples affected; contraction normalization reduces aggregate WER by 0.0167 points (1.67 WER pts).",
+    "suspected_root_cause": "textnorm_v1 removes apostrophes but does not expand contractions. The fine-tuned model outputs expanded forms while normalized reference retains the collapsed form, creating spurious mismatches.",
+    "proposed_intervention": "Add contraction expansion step to normalization pipeline: apply CONTRACTION_MAP to both reference and hypothesis before WER scoring.",
+    "experiment_type": "normalization-only",
+    "expected_impact": "1.7 WER pts (measured)",
+    "risk_assessment": "Low risk. Additive rule; does not change model weights. Possible false positives for ambiguous tokens (e.g. 'its', 'were'), but overall impact is bounded by measured contribution.",
+    "testable_in_m4a": true
+  },
+  {
+    "hypothesis_id": "H2",
+    "observed_pattern": "205 samples remain high-WER (>0.5) in both baseline and v1.1. 2/30 top substitution pairs also appear in baseline errors. Top 10% of samples contribute 27.8% of total errors (concentrated distribution).",
+    "evidence": "Baseline had 2083 insertions; v1.1 has 242 (reduction: 1841). 2 of top-30 substitution pairs persist from baseline, suggesting the model has not learned certain acoustic patterns despite fine-tuning.",
+    "suspected_root_cause": "base.en (74M parameters) may lack capacity for this speaker's acoustic patterns. Fine-tuning with LoRA adapts the existing representations but cannot add new capacity to distinguish phonetically similar tokens.",
+    "proposed_intervention": "Fine-tune small.en (244M parameters) with same LoRA config (r=16, alpha=32) and Dataset v1. Unfreeze DECODE_V1 decoding parameters for joint search.",
+    "experiment_type": "training-required",
+    "expected_impact": "10\u201320 WER pts (estimated from model size scaling)",
+    "risk_assessment": "Medium risk. Longer training (~3\u20134\u00d7 compute), higher memory usage. Risk of overfitting with same dataset size. Requires S1-M5 training run; not testable in M4a.",
+    "testable_in_m4a": false
+  },
+  {
+    "hypothesis_id": "H3",
+    "observed_pattern": "24.0% of top-50 worst-WER samples have poor audio quality (silence_ratio > 0.4 or rms_db < -40). WER vs silence_ratio Pearson r=0.096, WER vs rms_db Pearson r=-0.043.",
+    "evidence": "12 of top-50 worst samples classified as poor audio. Correlation with silence ratio: 0.096. Suggests audio quality is a contributing factor to high WER.",
+    "suspected_root_cause": "High silence ratio (pauses, breath noise) and low RMS level cause the model to hallucinate or produce low-confidence transcriptions.",
+    "proposed_intervention": "Targeted re-recording of high-silence, low-RMS utterances, or apply audio preprocessing (silence trimming, normalization) before inference.",
+    "experiment_type": "inference-only",
+    "expected_impact": "2\u20138 WER pts (estimated based on affected sample share)",
+    "risk_assessment": "Low-medium risk. Re-recording is labor-intensive but targeted. Audio preprocessing may degrade other samples. Requires Dataset v2 if re-recording is chosen.",
+    "testable_in_m4a": false
+  }
+]

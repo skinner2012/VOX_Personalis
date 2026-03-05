@@ -1,0 +1,17 @@
+{
+  "decision": "upgrade_model",
+  "primary_evidence": "50 of top-50 worst samples remain high-WER (>0.5) in both baseline and v1.1 (100.0% > 50% threshold). Fine-tuning has not resolved these persistent failures \u2014 model capacity is the bottleneck.",
+  "supporting_metrics": {
+    "aggregate_wer_v1_1": 0.6404,
+    "normalization_wer_contribution_pts": 0.0167,
+    "top_10pct_error_share": 0.2776,
+    "persistent_failure_count": 205,
+    "top50_persistent_failure_count": 50,
+    "top50_persistent_failure_pct": 1.0,
+    "poor_audio_in_top50_pct": 0.24,
+    "post_normalization_wer": 0.6237
+  },
+  "next_milestone": "S1-M5: Fine-tune small.en (244M) with LoRA r=16; unfreeze DECODE_V1.",
+  "normalization_fix_first": true,
+  "timestamp": "2026-03-02T20:28:27.525968+00:00"
+}

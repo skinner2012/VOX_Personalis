@@ -1,0 +1,32 @@
+{
+  "run_id": "small_en",
+  "description": "Model capacity scaling: base.en \u2192 small.en",
+  "timestamp": "2026-03-04T12:08:09.899883",
+  "dataset": {
+    "manifest_path": "./out/dataset_v1/20260206-142756/dataset_v1_manifest.csv"
+  },
+  "base_model": "small.en",
+  "lora": {
+    "rank": 16,
+    "alpha": 32,
+    "dropout": 0.15
+  },
+  "training": {
+    "learning_rate": 0.0001,
+    "max_epochs": 3,
+    "batch_size": 4,
+    "gradient_accumulation_steps": 4,
+    "warmup_steps": 100,
+    "weight_decay": 0.0,
+    "oom_fallback": false
+  },
+  "seeds": {
+    "python": 42,
+    "numpy": 42,
+    "torch": 42,
+    "deterministic_mode": false
+  },
+  "decode_config": "./configs/DECODE_V1.json",
+  "textnorm": "textnorm_v2",
+  "textnorm_module": "scripts/baseline_eval/normalization.py"
+}

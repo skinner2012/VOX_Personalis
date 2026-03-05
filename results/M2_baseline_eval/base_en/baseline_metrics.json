@@ -1,0 +1,63 @@
+{
+  "dataset_version": "v1",
+  "baseline_model": {
+    "name": "whisper",
+    "size": "base.en",
+    "library": "openai-whisper",
+    "library_version": "20250625"
+  },
+  "evaluation_config": {
+    "temperature": 0,
+    "language": "en",
+    "device": "mps",
+    "normalization": "jiwer_standard"
+  },
+  "splits_evaluated": [
+    "test"
+  ],
+  "aggregate": {
+    "test": {
+      "sample_count": 365,
+      "total_duration_sec": 1735.09,
+      "total_words": 1804,
+      "total_chars": 8737,
+      "wer": 2.5427,
+      "cer": 2.2448,
+      "insertions": 2818,
+      "deletions": 1386,
+      "substitutions": 383
+    }
+  },
+  "by_duration_bin": {
+    "test": {
+      "(1.0, 3]": {
+        "sample_count": 106,
+        "wer": 2.8717,
+        "cer": 2.2686
+      },
+      "(10.0, 30]": {
+        "sample_count": 19,
+        "wer": 1.8153,
+        "cer": 1.5736
+      },
+      "(3.0, 10]": {
+        "sample_count": 240,
+        "wer": 2.6155,
+        "cer": 2.3777
+      }
+    }
+  },
+  "skipped_samples": {
+    "count": 0,
+    "reasons": {},
+    "files": []
+  },
+  "created_timestamp": "2026-02-10T22:49:21.785187+00:00",
+  "tool_versions": {
+    "python": "3.13.7",
+    "whisper": "20250625",
+    "jiwer": "unknown",
+    "torch": "2.10.0",
+    "pandas": "3.0.0"
+  }
+}

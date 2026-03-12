@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+dist
+build
+.mypy_cache
+.ruff_cache
+.pytest_cache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Development
+.env
+.env.local
+venv/
+env/
+
+# Documentation and specs
+specs/
+*.md
+README.md
+
+# Training artifacts and data
+out/
+data/
+checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

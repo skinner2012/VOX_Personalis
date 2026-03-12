@@ -1,6 +1,7 @@
 """CLI parsing and startup orchestration for the MVS serving layer."""
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -75,6 +76,15 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+    # Configure logging — DEBUG for serving.* when --verbose, suppress noisy libs
+    logging.basicConfig(
+        format="[%(name)s] %(message)s",
+        level=logging.WARNING,
+        stream=sys.stdout,
+    )
+    if args.verbose:
+        logging.getLogger("serving").setLevel(logging.DEBUG)
 
     # Heavy imports deferred until after argument validation
     import uvicorn  # type: ignore[import-untyped]

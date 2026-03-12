@@ -258,53 +258,33 @@
 // ---------------------------------------------------------------------------
 // AudioWorklet processor (defined as a data URL so we don't need a file)
 // ---------------------------------------------------------------------------
+// Minimal pass-through worklet — just forwards raw Float32 input samples.
+// Resampling is done in the main thread (proven pattern from Google Cloud / OpenAI demos).
 const WORKLET_CODE = `
-class ResamplerProcessor extends AudioWorkletProcessor {
-  constructor(options) {
-    super();
-    this._inputRate = options.processorOptions.inputRate || 48000;
-    this._outputRate = 16000;
-    this._ratio = this._outputRate / this._inputRate;
-    this._buffer = [];
-    this._phase = 0;
-  }
-
+class PassthroughProcessor extends AudioWorkletProcessor {
   process(inputs) {
-    const input = inputs[0];
-    if (!input || !input[0]) return true;
-
-    const samples = input[0]; // mono (we'll merge in main thread if needed)
-
-    // Naive linear resampling
-    for (let i = 0; i < samples.length; i++) {
-      this._buffer.push(samples[i]);
-    }
-
-    // Produce output frames at target rate
-    const outSamples = [];
-    while (this._phase < this._buffer.length - 1) {
-      const idx = Math.floor(this._phase);
-      const frac = this._phase - idx;
-      const v = this._buffer[idx] * (1 - frac) + this._buffer[idx + 1] * frac;
-      // Convert Float32 [-1.0, 1.0] -> Int16
-      const int16 = Math.max(-32768, Math.min(32767, Math.round(v * 32767)));
-      outSamples.push(int16);
-      this._phase += 1 / this._ratio;
-    }
-
-    // Trim consumed samples
-    const consumed = Math.floor(this._phase);
-    this._buffer = this._buffer.slice(consumed);
-    this._phase -= consumed;
-
-    if (outSamples.length > 0) {
-      this.port.postMessage({ samples: new Int16Array(outSamples) });
+    const ch = inputs[0] && inputs[0][0];
+    if (ch && ch.length > 0) {
+      this.port.postMessage(ch);  // Float32Array @ native rate
     }
     return true;
   }
 }
-registerProcessor('resampler-processor', ResamplerProcessor);
+registerProcessor('passthrough-processor', PassthroughProcessor);
 `;
+
+// Downsample Float32 audio from inputRate to 16 kHz and convert to Int16.
+function downsampleToInt16(float32, inputRate) {
+  const ratio = inputRate / 16000;
+  const outLen = Math.floor(float32.length / ratio);
+  const out = new Int16Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const srcIdx = Math.min(Math.round(i * ratio), float32.length - 1);
+    const s = Math.max(-1, Math.min(1, float32[srcIdx]));
+    out[i] = s < 0 ? s * 32768 : s * 32767;
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 // State
@@ -428,9 +408,7 @@ async function startRecording() {
   ws = new WebSocket(`${proto}//${location.host}/ws/transcribe`);
   ws.binaryType = 'arraybuffer';
 
-  ws.onopen = () => {
-    setStatus('listening', 'Listening...');
-  };
+  ws.onopen = () => setStatus('listening', 'Listening...');
 
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
@@ -444,47 +422,51 @@ async function startRecording() {
     }
   };
 
-  ws.onclose = () => {
-    if (recording) stopRecording();
-  };
+  ws.onclose = () => { if (recording) stopRecording(); };
 
-  ws.onerror = () => {
-    setStatus('', 'WebSocket error');
-  };
+  ws.onerror = () => setStatus('', 'WebSocket error');
 
   // Audio pipeline
-  audioCtx = new AudioContext();
-  const inputRate = audioCtx.sampleRate;
+  try {
+    audioCtx = new AudioContext();
+    const inputRate = audioCtx.sampleRate;
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-  const workletBlob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
-  const workletUrl = URL.createObjectURL(workletBlob);
-  await audioCtx.audioWorklet.addModule(workletUrl);
+    const workletBlob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+    const workletUrl = URL.createObjectURL(workletBlob);
+    await audioCtx.audioWorklet.addModule(workletUrl);
+    URL.revokeObjectURL(workletUrl);
 
-  workletNode = new AudioWorkletNode(audioCtx, 'resampler-processor', {
-    processorOptions: { inputRate },
-  });
+    workletNode = new AudioWorkletNode(audioCtx, 'passthrough-processor');
 
-  workletNode.port.onmessage = (ev) => {
-    const incoming = ev.data.samples; // Int16Array @ 16kHz
-    // Append to pcmBuffer
-    const merged = new Int16Array(pcmBuffer.length + incoming.length);
-    merged.set(pcmBuffer);
-    merged.set(incoming, pcmBuffer.length);
-    pcmBuffer = merged;
+    workletNode.port.onmessage = (ev) => {
+      const float32 = ev.data; // Float32Array @ native rate
+      const int16 = downsampleToInt16(float32, inputRate);
 
-    // Emit complete 30ms frames
-    while (pcmBuffer.length >= FRAME_SAMPLES) {
-      const frame = pcmBuffer.slice(0, FRAME_SAMPLES);
-      pcmBuffer = pcmBuffer.slice(FRAME_SAMPLES);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(frame.buffer);
+      // Append to pcmBuffer
+      const merged = new Int16Array(pcmBuffer.length + int16.length);
+      merged.set(pcmBuffer);
+      merged.set(int16, pcmBuffer.length);
+      pcmBuffer = merged;
+
+      // Emit complete 30ms frames (480 samples = 960 bytes)
+      while (pcmBuffer.length >= FRAME_SAMPLES) {
+        const frame = pcmBuffer.slice(0, FRAME_SAMPLES);
+        pcmBuffer = pcmBuffer.slice(FRAME_SAMPLES);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(frame.buffer);
+        }
       }
-    }
-  };
+    };
 
-  sourceNode = audioCtx.createMediaStreamSource(mediaStream);
-  sourceNode.connect(workletNode);
-  // workletNode does not connect to destination (no echo)
+    sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+    sourceNode.connect(workletNode);
+    workletNode.connect(audioCtx.destination);
+  } catch (err) {
+    console.error('[demo] audio pipeline failed:', err);
+    setStatus('', 'Audio setup failed — see console');
+    return;
+  }
 
   recording = true;
   btn.textContent = 'Stop Recording';

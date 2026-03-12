@@ -9,6 +9,7 @@ Endpoints:
 
 import asyncio
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from serving import metrics as metrics_module
 from serving import model as model_module
 from serving.vad import VADSegmenter
+
+log = logging.getLogger("serving.api")
 
 app = FastAPI(title="VOX Personalis MVS", version="0.1.0")
 
@@ -90,12 +93,14 @@ async def demo() -> FileResponse:
 @app.websocket("/ws/transcribe")
 async def ws_transcribe(websocket: WebSocket) -> None:
     await websocket.accept()
+    log.debug("WebSocket accepted")
 
     segmenter = VADSegmenter(
         silence_ms=_vad_silence_ms,
         max_utterance_sec=_vad_max_utterance_sec,
     )
 
+    frame_count = 0
     try:
         while True:
             message = await websocket.receive()
@@ -108,16 +113,25 @@ async def ws_transcribe(websocket: WebSocket) -> None:
                     ctrl = {}
 
                 if ctrl.get("type") == "stop":
+                    log.debug("stop received — flushing (frames=%d)", frame_count)
                     remainder = segmenter.flush()
                     if remainder:
+                        log.debug("flush produced %d bytes", len(remainder))
                         await _handle_utterance(websocket, remainder, segmenter)
+                    else:
+                        log.debug("flush produced nothing")
                     break
                 continue
 
             # Binary audio frame
             frame: bytes = message.get("bytes", b"")
             if not frame:
+                log.debug("empty binary frame, skipping")
                 continue
+
+            frame_count += 1
+            if frame_count <= 5 or frame_count % 100 == 0:
+                log.debug("frame #%d, len=%d bytes", frame_count, len(frame))
 
             # Feed the frame; VADSegmenter expects exactly FRAME_BYTES per call.
             # The client sends full 30ms frames, but guard against partials.
@@ -133,6 +147,11 @@ async def ws_transcribe(websocket: WebSocket) -> None:
                     continue  # wrong size — skip
 
                 if utterance is not None:
+                    log.debug(
+                        "utterance detected: %d bytes (%.1fs)",
+                        len(utterance),
+                        len(utterance) / (VADSegmenter.SAMPLE_RATE * VADSegmenter.BYTES_PER_SAMPLE),
+                    )
                     # Max utterance exceeded — notify client then transcribe
                     max_frames = int(_vad_max_utterance_sec * 1000 / VADSegmenter.FRAME_MS)
                     max_bytes = VADSegmenter.FRAME_BYTES * max_frames
@@ -145,8 +164,9 @@ async def ws_transcribe(websocket: WebSocket) -> None:
                     await _handle_utterance(websocket, utterance, segmenter)
 
     except WebSocketDisconnect:
-        pass
-    except Exception:
+        log.debug("client disconnected (total frames=%d)", frame_count)
+    except Exception as exc:
+        log.debug("ws handler error: %s (total frames=%d)", exc, frame_count)
         try:
             await _send_error(websocket, "inference_error", "Unexpected server error")
         except Exception:

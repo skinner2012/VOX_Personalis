@@ -7,7 +7,11 @@ Audio format: 16 kHz, 16-bit signed integer (Int16), mono PCM.
 Frame size: exactly 30 ms (480 samples × 2 bytes = 960 bytes per frame).
 """
 
+import logging
+
 import webrtcvad  # type: ignore[import-untyped]
+
+log = logging.getLogger("serving.vad")
 
 
 class VADSegmenter:
@@ -71,10 +75,14 @@ class VADSegmenter:
         self._buffer.append(frame)
 
         if is_speech:
+            if not self._has_speech:
+                log.debug("speech started at frame %d", len(self._buffer))
             self._has_speech = True
             self._consecutive_silence = 0
         else:
             self._consecutive_silence += 1
+            if self._has_speech and self._consecutive_silence == 1:
+                log.debug("silence begins after speech (buffer=%d frames)", len(self._buffer))
 
         # Max utterance duration — force transcription regardless of VAD
         if len(self._buffer) >= self._max_utterance_frames:

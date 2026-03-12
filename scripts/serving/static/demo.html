@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOX Personalis — MVS Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
+    background: #0f1117;
+    color: #e2e8f0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---- Header ---- */
+  header {
+    background: #1a1d27;
+    border-bottom: 1px solid #2d3148;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 14px; color: #94a3b8; font-weight: 500; }
+  header h1 span { color: #e2e8f0; font-weight: 700; }
+  .badge {
+    background: #1e2a3a;
+    border: 1px solid #2d4a6a;
+    color: #7dd3fc;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* ---- Controls ---- */
+  .controls {
+    background: #141720;
+    border-bottom: 1px solid #2d3148;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  #btn-toggle {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    background: #22c55e;
+    color: #0f1117;
+  }
+  #btn-toggle.recording { background: #ef4444; color: #fff; }
+  #btn-toggle:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+
+  #status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #374151;
+    flex-shrink: 0;
+  }
+  #status-dot.listening { background: #22c55e; animation: pulse 1.5s infinite; }
+  #status-dot.transcribing { background: #f59e0b; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  #status-text { font-size: 12px; color: #64748b; }
+
+  /* ---- Main panels ---- */
+  .panels {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-transcript {
+    flex: 1;
+    border-right: 1px solid #2d3148;
+  }
+
+  .panel-metrics {
+    width: 220px;
+    flex-shrink: 0;
+  }
+
+  .panel-header {
+    background: #1a1d27;
+    border-bottom: 1px solid #2d3148;
+    padding: 8px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* ---- Transcript ---- */
+  #transcript-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .segment {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: #1a1d27;
+    border-left: 3px solid #2563eb;
+    animation: fade-in 0.2s ease;
+  }
+
+  .segment.error {
+    border-left-color: #ef4444;
+    background: #1f1215;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .segment-text {
+    font-size: 14px;
+    color: #e2e8f0;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .segment-meta {
+    font-size: 11px;
+    color: #475569;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .empty-hint {
+    color: #374151;
+    font-size: 13px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  /* ---- Metrics panel ---- */
+  #metrics-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #1e2130;
+    padding-bottom: 8px;
+  }
+
+  .metric-label { font-size: 11px; color: #64748b; }
+  .metric-value { font-size: 13px; color: #e2e8f0; font-weight: 600; }
+  .metric-value.good { color: #22c55e; }
+  .metric-value.warn { color: #f59e0b; }
+  .metric-value.bad  { color: #ef4444; }
+
+  .metrics-divider {
+    border: none;
+    border-top: 1px solid #2d3148;
+    margin: 4px 0;
+  }
+
+  .metric-section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #475569;
+    padding-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>VOX Personalis</span> &middot; Model v2 (small.en + LoRA r=16)</h1>
+  <div class="badge">Val WER 44.02%</div>
+  <div class="badge">S1-M6 MVS</div>
+</header>
+
+<div class="controls">
+  <button id="btn-toggle" disabled>Loading model...</button>
+  <div id="status-dot"></div>
+  <span id="status-text">Waiting for model...</span>
+</div>
+
+<div class="panels">
+
+  <div class="panel panel-transcript">
+    <div class="panel-header">Live Transcript</div>
+    <div id="transcript-list">
+      <div class="empty-hint" id="empty-hint">Start recording to see transcription...</div>
+    </div>
+  </div>
+
+  <div class="panel panel-metrics">
+    <div class="panel-header">Session Metrics</div>
+    <div id="metrics-grid">
+      <div class="metric-section-label">Latency</div>
+      <div class="metric-row"><span class="metric-label">P50</span><span class="metric-value" id="m-p50">—</span></div>
+      <div class="metric-row"><span class="metric-label">P95</span><span class="metric-value" id="m-p95">—</span></div>
+      <div class="metric-row"><span class="metric-label">Min</span><span class="metric-value" id="m-min">—</span></div>
+      <div class="metric-row"><span class="metric-label">Max</span><span class="metric-value" id="m-max">—</span></div>
+      <hr class="metrics-divider">
+      <div class="metric-section-label">Session</div>
+      <div class="metric-row"><span class="metric-label">Segments</span><span class="metric-value" id="m-segs">0</span></div>
+      <div class="metric-row"><span class="metric-label">Failed</span><span class="metric-value" id="m-failed">0</span></div>
+      <div class="metric-row"><span class="metric-label">Fail rate</span><span class="metric-value" id="m-fail-rate">0%</span></div>
+      <div class="metric-row"><span class="metric-label">Audio</span><span class="metric-value" id="m-audio">0.0s</span></div>
+      <hr class="metrics-divider">
+      <div class="metric-section-label">Service</div>
+      <div class="metric-row"><span class="metric-label">Uptime</span><span class="metric-value" id="m-uptime">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// AudioWorklet processor (defined as a data URL so we don't need a file)
+// ---------------------------------------------------------------------------
+const WORKLET_CODE = `
+class ResamplerProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    this._inputRate = options.processorOptions.inputRate || 48000;
+    this._outputRate = 16000;
+    this._ratio = this._outputRate / this._inputRate;
+    this._buffer = [];
+    this._phase = 0;
+  }
+
+  process(inputs) {
+    const input = inputs[0];
+    if (!input || !input[0]) return true;
+
+    const samples = input[0]; // mono (we'll merge in main thread if needed)
+
+    // Naive linear resampling
+    for (let i = 0; i < samples.length; i++) {
+      this._buffer.push(samples[i]);
+    }
+
+    // Produce output frames at target rate
+    const outSamples = [];
+    while (this._phase < this._buffer.length - 1) {
+      const idx = Math.floor(this._phase);
+      const frac = this._phase - idx;
+      const v = this._buffer[idx] * (1 - frac) + this._buffer[idx + 1] * frac;
+      // Convert Float32 [-1.0, 1.0] -> Int16
+      const int16 = Math.max(-32768, Math.min(32767, Math.round(v * 32767)));
+      outSamples.push(int16);
+      this._phase += 1 / this._ratio;
+    }
+
+    // Trim consumed samples
+    const consumed = Math.floor(this._phase);
+    this._buffer = this._buffer.slice(consumed);
+    this._phase -= consumed;
+
+    if (outSamples.length > 0) {
+      this.port.postMessage({ samples: new Int16Array(outSamples) });
+    }
+    return true;
+  }
+}
+registerProcessor('resampler-processor', ResamplerProcessor);
+`;
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let ws = null;
+let audioCtx = null;
+let workletNode = null;
+let sourceNode = null;
+let mediaStream = null;
+let recording = false;
+
+// 30ms at 16kHz = 480 samples = 960 bytes
+const FRAME_SAMPLES = 480;
+const FRAME_BYTES = FRAME_SAMPLES * 2; // Int16
+let pcmBuffer = new Int16Array(0);
+
+// ---------------------------------------------------------------------------
+// UI helpers
+// ---------------------------------------------------------------------------
+const btn = document.getElementById('btn-toggle');
+const dot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const transcriptList = document.getElementById('transcript-list');
+const emptyHint = document.getElementById('empty-hint');
+
+function setStatus(state, text) {
+  dot.className = state; // '', 'listening', 'transcribing'
+  statusText.textContent = text;
+}
+
+function addSegment(text, latencyMs, isError = false) {
+  if (emptyHint) emptyHint.remove();
+  const seg = document.createElement('div');
+  seg.className = 'segment' + (isError ? ' error' : '');
+  const textEl = document.createElement('span');
+  textEl.className = 'segment-text';
+  textEl.textContent = text;
+  const meta = document.createElement('span');
+  meta.className = 'segment-meta';
+  meta.textContent = latencyMs != null ? Math.round(latencyMs) + 'ms' : '';
+  seg.appendChild(textEl);
+  seg.appendChild(meta);
+  transcriptList.appendChild(seg);
+  transcriptList.scrollTop = transcriptList.scrollHeight;
+}
+
+// ---------------------------------------------------------------------------
+// Metrics polling
+// ---------------------------------------------------------------------------
+function fmtMs(v) { return v != null ? Math.round(v) + 'ms' : '—'; }
+function fmtPct(v) { return v != null ? (v * 100).toFixed(1) + '%' : '0%'; }
+function fmtUptime(sec) {
+  if (sec == null) return '—';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+async function pollMetrics() {
+  try {
+    const r = await fetch('/metrics');
+    if (!r.ok) return;
+    const d = await r.json();
+    const lat = d.latency_ms || {};
+
+    document.getElementById('m-p50').textContent = fmtMs(lat.p50);
+    document.getElementById('m-p95').textContent = fmtMs(lat.p95);
+    document.getElementById('m-min').textContent = fmtMs(lat.min);
+    document.getElementById('m-max').textContent = fmtMs(lat.max);
+    document.getElementById('m-segs').textContent = d.total_segments || 0;
+    document.getElementById('m-failed').textContent = d.failed_segments || 0;
+    document.getElementById('m-fail-rate').textContent = fmtPct(d.failure_rate);
+    document.getElementById('m-audio').textContent =
+      d.total_audio_sec != null ? d.total_audio_sec.toFixed(1) + 's' : '0.0s';
+    document.getElementById('m-uptime').textContent = fmtUptime(d.uptime_sec);
+
+    // Colour fail rate
+    const failEl = document.getElementById('m-fail-rate');
+    const rate = d.failure_rate || 0;
+    failEl.className = 'metric-value' + (rate > 0.1 ? ' bad' : rate > 0.03 ? ' warn' : ' good');
+  } catch (_) {}
+}
+
+setInterval(pollMetrics, 5000);
+
+// ---------------------------------------------------------------------------
+// Health polling — enable button when model ready
+// ---------------------------------------------------------------------------
+async function waitForModel() {
+  while (true) {
+    try {
+      const r = await fetch('/health');
+      const d = await r.json();
+      if (d.status === 'ok') {
+        btn.disabled = false;
+        btn.textContent = 'Start Recording';
+        setStatus('', 'Ready');
+        pollMetrics();
+        return;
+      }
+    } catch (_) {}
+    await new Promise(res => setTimeout(res, 1000));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recording
+// ---------------------------------------------------------------------------
+async function startRecording() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (err) {
+    setStatus('', 'Microphone access denied');
+    return;
+  }
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws/transcribe`);
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = () => {
+    setStatus('listening', 'Listening...');
+  };
+
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === 'transcript') {
+      setStatus('listening', 'Listening...');
+      addSegment(msg.transcript, msg.latency_ms);
+      pollMetrics();
+    } else if (msg.type === 'error') {
+      setStatus('listening', `Error: ${msg.code}`);
+      addSegment(`[${msg.code}] ${msg.message}`, null, true);
+    }
+  };
+
+  ws.onclose = () => {
+    if (recording) stopRecording();
+  };
+
+  ws.onerror = () => {
+    setStatus('', 'WebSocket error');
+  };
+
+  // Audio pipeline
+  audioCtx = new AudioContext();
+  const inputRate = audioCtx.sampleRate;
+
+  const workletBlob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+  const workletUrl = URL.createObjectURL(workletBlob);
+  await audioCtx.audioWorklet.addModule(workletUrl);
+
+  workletNode = new AudioWorkletNode(audioCtx, 'resampler-processor', {
+    processorOptions: { inputRate },
+  });
+
+  workletNode.port.onmessage = (ev) => {
+    const incoming = ev.data.samples; // Int16Array @ 16kHz
+    // Append to pcmBuffer
+    const merged = new Int16Array(pcmBuffer.length + incoming.length);
+    merged.set(pcmBuffer);
+    merged.set(incoming, pcmBuffer.length);
+    pcmBuffer = merged;
+
+    // Emit complete 30ms frames
+    while (pcmBuffer.length >= FRAME_SAMPLES) {
+      const frame = pcmBuffer.slice(0, FRAME_SAMPLES);
+      pcmBuffer = pcmBuffer.slice(FRAME_SAMPLES);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(frame.buffer);
+      }
+    }
+  };
+
+  sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+  sourceNode.connect(workletNode);
+  // workletNode does not connect to destination (no echo)
+
+  recording = true;
+  btn.textContent = 'Stop Recording';
+  btn.className = 'recording';
+}
+
+function stopRecording() {
+  recording = false;
+  btn.textContent = 'Start Recording';
+  btn.className = '';
+  setStatus('', 'Stopped');
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'stop' }));
+    ws.close();
+  }
+  ws = null;
+
+  if (workletNode) { workletNode.disconnect(); workletNode = null; }
+  if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+
+  pcmBuffer = new Int16Array(0);
+}
+
+btn.addEventListener('click', () => {
+  if (!recording) {
+    startRecording();
+  } else {
+    stopRecording();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+waitForModel();
+</script>
+</body>
+</html>

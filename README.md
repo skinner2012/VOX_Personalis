@@ -302,6 +302,36 @@ Key findings:
   failure pattern
 - **Next step**: Min Viable Serving with Model v2 checkpoint
 
+### S1-M6 — Minimal Viable Serving (MVS)
+
+Goal:
+
+- Move Model v2 from offline evaluation into a real service with streaming
+  transcription, measurable SLAs, and a browser demo.
+
+Key questions:
+
+- Can we expose Model v2 as a real service with WebSocket streaming, VAD-triggered
+  transcription, and production-minded architecture?
+
+Specification:
+
+- [`specs/S1-M6-minimal-viable-serving.md`](specs/S1-M6-minimal-viable-serving.md)
+
+Key concepts:
+
+- WebSocket streaming with VAD-triggered batch-per-utterance transcription
+- In-memory SLA metrics (`/metrics`) with rolling JSONL persistence
+- Health/readiness endpoint (`/health`) with startup warm-up gating
+- Self-contained browser demo UI (`/demo`) with AudioWorklet capture
+- Dockerfile for cloud-readiness (non-root user, health check, volume mounts)
+- Provider-agnostic 12-factor design (same code local and cloud)
+
+Results:
+
+> Demo results (screenshot / screen recording) to be added after formal demo
+> session. All endpoints verified functional during smoke testing.
+
 ______________________________________________________________________
 
 ## Repository Structure
@@ -315,7 +345,9 @@ VOX_Personalis/
 │   ├── dataset_versioning/   # S1-M1: Dataset versioning CLI
 │   ├── baseline_eval/        # S1-M2: Baseline evaluation + normalization
 │   ├── fine_tuning/          # S1-M3/M4/M5: LoRA fine-tuning CLI
-│   └── error_analysis/       # S1-M4a: Error analysis CLI
+│   ├── error_analysis/       # S1-M4a: Error analysis CLI
+│   └── serving/              # S1-M6: Minimal Viable Serving
+├── Dockerfile                # Cloud-readiness artifact (S1-M6)
 ├── results/                  # Per-milestone result archives (gitignored)
 ├── data/                     # (Local only; not committed)
 ├── out/                      # Generated artifacts (gitignored)
@@ -338,9 +370,10 @@ ______________________________________________________________________
 
 ## Status
 
-- Latest milestone: **S1-M5 — Model Capacity Scaling** (complete)
-- Latest result: **val WER 44.02%** (Breakthrough — 18.35 pts vs v1.1)
-- Platform: macOS (Apple Silicon, CPU training)
+- Latest milestone: **S1-M6 — Minimal Viable Serving** (complete)
+- Latest result: Model v2 serving live via WebSocket (P50 ~1.5s CPU latency)
+- Model: val WER 44.02% (small.en + LoRA r=16, from S1-M5)
+- Platform: macOS (Apple Silicon, CPU inference)
 - Data: single-speaker, labeled audio + transcripts (not included in repo)
 
 ______________________________________________________________________

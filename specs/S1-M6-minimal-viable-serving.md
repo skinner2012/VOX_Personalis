@@ -430,8 +430,9 @@ stakeholder review (owner records the demo and shares screenshots/recordings).
 
 - **Single file**: `scripts/serving/static/demo.html` (HTML + CSS + JS inline,
   no external dependencies)
-- **Audio capture**: Web Audio API `AudioWorklet` for microphone → 16kHz raw
-  PCM
+- **Audio capture**: Minimal pass-through `AudioWorklet` forwards raw Float32
+  samples; main thread downsamples to 16 kHz Int16 PCM (proven Google Cloud /
+  OpenAI pattern — avoids Chrome AudioWorklet input-zeroing edge cases)
 - **Streaming**: WebSocket client to `/ws/transcribe`
 - **Metrics display**: Polling `GET /metrics` every 5s, displays P50/P95
   latency, failure rate, and segment count
@@ -486,22 +487,9 @@ and TLS handling (provided by the platform) differ.
 
 Located at project root (`./Dockerfile`):
 
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY . .
-RUN pip install -e ".[serving]"
-ENV PORT=8000 HOST=0.0.0.0
-EXPOSE 8000
-CMD ["python", "-m", "scripts.serving"]
-```
-
-This Dockerfile:
-
-- Uses Python 3.11 (matches development environment)
-- Installs the `serving` extras from `pyproject.toml`
-- Exposes port 8000
-- Runs the MVS service on all interfaces (0.0.0.0 for cloud routing)
+See [`Dockerfile`](../Dockerfile) at project root. Key features: non-root user,
+stdlib-based `HEALTHCHECK`, `ENTRYPOINT`/`CMD` split for overridable defaults,
+mount points for checkpoint and logs.
 
 ### Production Language Trade-Offs
 
@@ -749,6 +737,26 @@ The Dockerfile should:
 - Bundle model weights OR expect them at runtime via mounted volume
 - For MVS: bundle weights in image (simplicity for demo)
 - For cloud: externalize weights to a model registry (future iteration)
+
+______________________________________________________________________
+
+## Known Issues & Trade-Offs (After Implementation and Testing)
+
+Documented during smoke testing and audit. None block MVP delivery.
+
+| Issue                              | Severity   | Notes                                        |
+| ---------------------------------- | ---------- | -------------------------------------------- |
+| Global model state not thread-safe | Low        | Single-threaded ASGI; upgrade if scaling     |
+| Metrics file write failures silent | Low        | Dockerfile creates `/var/log/vox` with perms |
+| Server errors leak to client UI    | Low        | Trusted demo env; sanitize for multi-user    |
+| Utterances lost on disconnect      | Expected   | VAD `min_utterance_ms=300` by design         |
+| Metrics percentile off-by-one      | Cosmetic   | Negligible impact at small n                 |
+| Linear resampling has aliasing     | Negligible | Whisper robust to minor distortion           |
+| Segment recording not atomic       | Low        | Single WebSocket; add lock if multi-user     |
+| AudioWorklet state not restored    | Low        | Explicit cleanup + retry recovers            |
+
+**Summary**: All issues tracked and understood. No fixes needed for MVP. Clear upgrade path
+for each if scaling beyond single-speaker service.
 
 ______________________________________________________________________
 

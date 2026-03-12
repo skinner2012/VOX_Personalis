@@ -19,3 +19,4 @@ must be explicit and documented.
 - [S1-M4a](S1-M4a-error-analysis.md) — Error Analysis & Targeted Improvement Hypotheses
 - [S1-M4b](S1-M4b-normalization-fix.md) — Normalization Fix
 - [S1-M5](S1-M5-model-capacity-scaling.md) — Model Capacity Scaling
+- [S1-M6](S1-M6-minimal-viable-serving.md) — Minimal Viable Serving (MVS)

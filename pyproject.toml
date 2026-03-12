@@ -17,6 +17,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+serving = [
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.23",
+]
 dev = [
     "ruff>=0.8.0",
     "mypy>=1.8.0",
@@ -34,7 +38,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["scripts"]
-include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "fine_tuning*", "error_analysis*"]
+include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "fine_tuning*", "error_analysis*", "serving*"]
 
 [tool.ruff]
 line-length = 100

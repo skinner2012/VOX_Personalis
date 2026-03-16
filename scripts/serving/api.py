@@ -1,23 +1,27 @@
 """FastAPI application — routes and WebSocket handler for MVS.
 
 Endpoints:
-  WS  /ws/transcribe  — streaming transcription
-  GET /metrics        — SLA metrics JSON
-  GET /health         — readiness check (200 ready, 503 starting)
-  GET /demo           — browser demo UI
+  WS   /ws/transcribe  — streaming transcription
+  GET  /metrics        — SLA metrics JSON
+  GET  /health         — readiness check (200 ready, 503 starting)
+  GET  /demo           — browser demo UI
+  POST /feedback       — submit transcript correction
 """
 
 import asyncio
 import json
 import logging
 import time
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 from serving import metrics as metrics_module
 from serving import model as model_module
+from serving.feedback import AudioRetentionBuffer, FeedbackStore
 from serving.vad import VADSegmenter
 
 log = logging.getLogger("serving.api")
@@ -28,6 +32,10 @@ app = FastAPI(title="VOX Personalis MVS", version="0.1.0")
 _collector: metrics_module.MetricsCollector | None = None
 _vad_silence_ms: int = 1000
 _vad_max_utterance_sec: float = 30.0
+_feedback_store: FeedbackStore | None = None
+
+# Set per WebSocket session in ws_transcribe()
+_audio_buffer: AudioRetentionBuffer | None = None
 
 _STATIC_DIR = Path(__file__).parent / "static"
 _INFERENCE_TIMEOUT_SEC = 30.0
@@ -37,12 +45,15 @@ def configure(
     collector: metrics_module.MetricsCollector,
     silence_ms: int,
     max_utterance_sec: float,
+    feedback_out: Path | None = None,
 ) -> None:
     """Called by cli.py after model load, before uvicorn.run()."""
-    global _collector, _vad_silence_ms, _vad_max_utterance_sec
+    global _collector, _vad_silence_ms, _vad_max_utterance_sec, _feedback_store
     _collector = collector
     _vad_silence_ms = silence_ms
     _vad_max_utterance_sec = max_utterance_sec
+    if feedback_out is not None:
+        _feedback_store = FeedbackStore(feedback_out)
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +103,9 @@ async def demo() -> FileResponse:
 
 @app.websocket("/ws/transcribe")
 async def ws_transcribe(websocket: WebSocket) -> None:
+    global _audio_buffer
     await websocket.accept()
+    _audio_buffer = AudioRetentionBuffer()
     log.debug("WebSocket accepted")
 
     segmenter = VADSegmenter(
@@ -165,8 +178,12 @@ async def ws_transcribe(websocket: WebSocket) -> None:
 
     except WebSocketDisconnect:
         log.debug("client disconnected (total frames=%d)", frame_count)
+        if _audio_buffer is not None:
+            _audio_buffer.clear()
     except Exception as exc:
         log.debug("ws handler error: %s (total frames=%d)", exc, frame_count)
+        if _audio_buffer is not None:
+            _audio_buffer.clear()
         try:
             await _send_error(websocket, "inference_error", "Unexpected server error")
         except Exception:
@@ -211,6 +228,9 @@ async def _handle_utterance(
             }
         )
 
+        if _audio_buffer is not None:
+            _audio_buffer.store(segment_id, audio_bytes)
+
     except TimeoutError:
         latency_ms = (time.monotonic() - t_start) * 1000
         _collector.record_segment(
@@ -243,3 +263,50 @@ async def _send_error(websocket: WebSocket, code: str, message: str) -> None:
         await websocket.send_json({"type": "error", "code": code, "message": message})
     except Exception:
         pass
+
+
+# ---------------------------------------------------------------------------
+# Feedback correction
+# ---------------------------------------------------------------------------
+
+
+class FeedbackRequest(BaseModel):
+    segment_id: int
+    original_text: str
+    corrected_text: str
+
+
+@app.post("/feedback")
+async def post_feedback(req: FeedbackRequest) -> JSONResponse:
+    """Accept a user correction for a previously transcribed segment."""
+    if req.original_text.strip() == req.corrected_text.strip():
+        return JSONResponse(
+            {"error": "corrected_text must differ from original_text"}, status_code=400
+        )
+
+    if _feedback_store is None:
+        return JSONResponse({"error": "feedback collection not configured"}, status_code=503)
+
+    if _audio_buffer is None:
+        return JSONResponse({"error": "segment expired — no active session"}, status_code=404)
+
+    audio = _audio_buffer.pop(req.segment_id)
+    if audio is None:
+        return JSONResponse(
+            {"error": f"segment {req.segment_id} not found or expired"}, status_code=404
+        )
+
+    session_id: uuid.UUID = _audio_buffer.session_id
+    try:
+        feedback_id, path = _feedback_store.save(
+            audio_bytes=audio,
+            segment_id=req.segment_id,
+            session_id=session_id,
+            original_text=req.original_text,
+            corrected_text=req.corrected_text,
+        )
+    except OSError as exc:
+        return JSONResponse({"error": f"disk write failed: {exc}"}, status_code=500)
+
+    log.debug("feedback saved: id=%s, segment_id=%d", feedback_id, req.segment_id)
+    return JSONResponse({"status": "saved", "feedback_id": feedback_id, "path": str(path)})

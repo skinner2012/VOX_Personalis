@@ -51,6 +51,11 @@ Example:
         action="store_true",
         help="Skip warm-up inference pass (testing only)",
     )
+    parser.add_argument(
+        "--feedback_out",
+        default="./out/feedback",
+        help="Directory for correction feedback data (default: ./out/feedback)",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="Detailed logging")
 
     return parser.parse_args()
@@ -101,6 +106,7 @@ def main() -> None:
         collector=collector,
         silence_ms=args.silence_ms,
         max_utterance_sec=args.max_utterance_sec,
+        feedback_out=Path(args.feedback_out),
     )
 
     # -----------------------------------------------------------------------
@@ -130,6 +136,7 @@ def main() -> None:
         print(f"[error] Model load failed: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    print(f"[startup]  Feedback output:   {Path(args.feedback_out).resolve()}")
     print(f"[startup]  Model ready. Serving on ws://{args.host}:{args.port}")
 
     # -----------------------------------------------------------------------

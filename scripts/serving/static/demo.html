@@ -207,6 +207,38 @@
     color: #475569;
     padding-bottom: 4px;
   }
+
+  /* ---- Feedback / correction ---- */
+  .segment-text[contenteditable="true"] {
+    outline: 1px solid #3b82f6;
+    background: #1e2a3a;
+    border-radius: 2px;
+    padding: 1px 4px;
+    cursor: text;
+  }
+
+  .btn-submit {
+    display: none;
+    padding: 2px 8px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .segment.feedback-saved { border-left-color: #22c55e; }
+  .segment.feedback-saved .segment-text { color: #86efac; }
+
+  .segment.feedback-error { animation: flash-red 0.6s ease; }
+
+  @keyframes flash-red {
+    0%, 100% { border-left-color: #2563eb; }
+    50%       { border-left-color: #ef4444; }
+  }
 </style>
 </head>
 <body>
@@ -315,17 +347,25 @@ function setStatus(state, text) {
   statusText.textContent = text;
 }
 
-function addSegment(text, latencyMs, isError = false) {
+function addSegment(text, latencyMs, isError = false, segmentId = null) {
   if (emptyHint) emptyHint.remove();
   const seg = document.createElement('div');
   seg.className = 'segment' + (isError ? ' error' : '');
+  if (segmentId != null) {
+    seg.dataset.segmentId = segmentId;
+    seg.dataset.originalText = text;
+  }
   const textEl = document.createElement('span');
   textEl.className = 'segment-text';
   textEl.textContent = text;
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'btn-submit';
+  submitBtn.textContent = 'Submit';
   const meta = document.createElement('span');
   meta.className = 'segment-meta';
   meta.textContent = latencyMs != null ? Math.round(latencyMs) + 'ms' : '';
   seg.appendChild(textEl);
+  if (!isError && segmentId != null) seg.appendChild(submitBtn);
   seg.appendChild(meta);
   transcriptList.appendChild(seg);
   transcriptList.scrollTop = transcriptList.scrollHeight;
@@ -414,7 +454,7 @@ async function startRecording() {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'transcript') {
       setStatus('listening', 'Listening...');
-      addSegment(msg.transcript, msg.latency_ms);
+      addSegment(msg.transcript, msg.latency_ms, false, msg.segment_id);
       pollMetrics();
     } else if (msg.type === 'error') {
       setStatus('listening', `Error: ${msg.code}`);
@@ -498,6 +538,83 @@ btn.addEventListener('click', () => {
     startRecording();
   } else {
     stopRecording();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Correction / Feedback
+// ---------------------------------------------------------------------------
+async function submitCorrection(seg) {
+  const textEl = seg.querySelector('.segment-text');
+  const submitBtn = seg.querySelector('.btn-submit');
+  const segmentId = parseInt(seg.dataset.segmentId, 10);
+  const original = seg.dataset.originalText;
+  const corrected = textEl.textContent.trim();
+
+  textEl.contentEditable = 'false';
+  if (submitBtn) submitBtn.style.display = 'none';
+
+  if (!corrected || corrected === original) return;
+
+  try {
+    const r = await fetch('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        segment_id: segmentId,
+        original_text: original,
+        corrected_text: corrected,
+      }),
+    });
+    if (r.ok) {
+      seg.classList.add('feedback-saved');
+      const meta = seg.querySelector('.segment-meta');
+      if (meta) meta.textContent = '✓ saved';
+    } else {
+      seg.classList.add('feedback-error');
+      setTimeout(() => seg.classList.remove('feedback-error'), 700);
+    }
+  } catch (_) {
+    seg.classList.add('feedback-error');
+    setTimeout(() => seg.classList.remove('feedback-error'), 700);
+  }
+}
+
+// Delegated click handler — activate editing or submit correction
+transcriptList.addEventListener('click', (ev) => {
+  // Submit button clicked
+  const submitBtn = ev.target.closest('.btn-submit');
+  if (submitBtn) {
+    const seg = submitBtn.closest('.segment');
+    if (seg) submitCorrection(seg);
+    return;
+  }
+
+  // Segment text clicked — activate editing
+  const textEl = ev.target.closest('.segment-text');
+  if (
+    textEl &&
+    textEl.contentEditable !== 'true' &&
+    textEl.closest('.segment')?.dataset.segmentId &&
+    !textEl.closest('.segment')?.classList.contains('feedback-saved')
+  ) {
+    const seg = textEl.closest('.segment');
+    textEl.contentEditable = 'true';
+    textEl.focus();
+    const btn = seg.querySelector('.btn-submit');
+    if (btn) btn.style.display = 'inline-block';
+  }
+});
+
+// Submit on Enter (Shift+Enter for newline — but transcripts are single-line)
+transcriptList.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && !ev.shiftKey) {
+    const textEl = ev.target.closest('.segment-text');
+    if (textEl && textEl.contentEditable === 'true') {
+      ev.preventDefault();
+      const seg = textEl.closest('.segment');
+      if (seg) submitCorrection(seg);
+    }
   }
 });
 

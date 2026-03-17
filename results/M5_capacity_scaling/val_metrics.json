@@ -1,4 +1,5 @@
 {
-  "wer": 0.4402,
-  "cer": 0.3029
+  "wer": 0.4795,
+  "cer": 0.3029,
+  "note": "Deterministic re-evaluation (temperature=0.0). Original sampling eval (temperature=1.0) showed 0.4402."
 }

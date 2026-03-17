@@ -18,5 +18,7 @@ must be explicit and documented.
 - [S1-M4](S1-M4-targeted-improvements.md) — Targeted Improvements & Controlled Model Upgrades
 - [S1-M4a](S1-M4a-error-analysis.md) — Error Analysis & Targeted Improvement Hypotheses
 - [S1-M4b](S1-M4b-normalization-fix.md) — Normalization Fix
-- [S1-M5](S1-M5-model-capacity-scaling.md) — Model Capacity Scaling
+- [S1-M5](S1-M5-model-capacity-scaling.md) — Model Capacity Scaling (val WER 47.95%, deterministic)
 - [S1-M6](S1-M6-minimal-viable-serving.md) — Minimal Viable Serving (MVS)
+- [S1-M7](S1-M7-feedback-loop-correction-fine-tuning.md) — Feedback Loop & Correction
+  Fine-Tuning (val WER 34.05%, −13.90 pts)

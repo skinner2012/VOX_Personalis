@@ -291,12 +291,16 @@ Results:
 
 | Metric  | Model v1.1 (base.en) | Model v2 (small.en) | Improvement   |
 | ------- | -------------------- | ------------------- | ------------- |
-| Val WER | 62.37%               | 44.02%              | **18.35 pts** |
+| Val WER | 62.37%               | 47.95%              | **14.42 pts** |
 | Val CER | —                    | 30.29%              | —             |
+
+> **Note:** Val WER is the deterministic result (temperature=0.0, greedy
+> decoding). An earlier sampling evaluation reported 44.02%; the deterministic
+> re-run gives 47.95%, which is the canonical figure.
 
 Key findings:
 
-- **Breakthrough outcome**: Δ = −18.35 pts (29.4% relative improvement vs
+- **Breakthrough outcome**: Δ = −14.42 pts (23.1% relative improvement vs
   v1.1)
 - **Capacity hypothesis confirmed**: 3.3× model scale resolved the persistent
   failure pattern
@@ -332,6 +336,48 @@ Results:
 > Demo results (screenshot / screen recording) to be added after formal demo
 > session. All endpoints verified functional during smoke testing.
 
+### S1-M7 — Feedback Loop & Correction Fine-Tuning
+
+Goal:
+
+- Close the loop from transcription error observation to model improvement:
+  collect corrections during live serving and feed them back through the
+  fine-tuning pipeline.
+
+Key questions:
+
+- Can we capture user corrections via the serving UI, batch fine-tune with
+  those corrections, and measure a WER improvement on the same val set?
+
+Specification:
+
+- [`specs/S1-M7-feedback-loop-correction-fine-tuning.md`](specs/S1-M7-feedback-loop-correction-fine-tuning.md)
+
+Key concepts:
+
+- `POST /feedback` endpoint stores audio + corrected text per segment
+- In-memory audio retention buffer (100-segment FIFO, per WebSocket session)
+- `consumed.marker` tracks which corrections have been used in each batch
+- Merged manifest: original training data + corrections (prevents catastrophic forgetting)
+- `--checkpoint_path` flag: continued training from v2's LoRA weights (critical for signal)
+- `PeftModel.from_pretrained(..., is_trainable=True)` required for gradient flow on resumed LoRA
+
+Results (batch 2, `batch_20260317_110057`):
+
+| Model                           | Val WER    | Delta          | Training Samples |
+| ------------------------------- | ---------- | -------------- | ---------------- |
+| v2 (M5 baseline, deterministic) | 47.95%     | —              | 2,897            |
+| v2 + 108 corrections            | **34.05%** | **−13.90 pts** | 3,005            |
+
+Key findings:
+
+- **Batch 1 produced no improvement** (fresh LoRA, 67 corrections = 2.3% of data — signal
+  diluted by relearning from scratch)
+- **Batch 2 breakthrough**: starting from v2's checkpoint gave corrections leverage on
+  existing knowledge — 13.90 absolute pts / 29.0% relative improvement
+- **Implementation detail**: `is_trainable=True` in `PeftModel.from_pretrained()` is
+  required; `model.train()` alone does not re-enable LoRA gradients
+
 ______________________________________________________________________
 
 ## Repository Structure
@@ -346,7 +392,8 @@ VOX_Personalis/
 │   ├── baseline_eval/        # S1-M2: Baseline evaluation + normalization
 │   ├── fine_tuning/          # S1-M3/M4/M5: LoRA fine-tuning CLI
 │   ├── error_analysis/       # S1-M4a: Error analysis CLI
-│   └── serving/              # S1-M6: Minimal Viable Serving
+│   ├── serving/              # S1-M6: Minimal Viable Serving
+│   └── feedback_finetune/    # S1-M7: Feedback-loop fine-tuning CLI
 ├── Dockerfile                # Cloud-readiness artifact (S1-M6)
 ├── results/                  # Per-milestone result archives (gitignored)
 ├── data/                     # (Local only; not committed)
@@ -370,9 +417,10 @@ ______________________________________________________________________
 
 ## Status
 
-- Latest milestone: **S1-M6 — Minimal Viable Serving** (complete)
-- Latest result: Model v2 serving live via WebSocket (P50 ~1.5s CPU latency)
-- Model: val WER 44.02% (small.en + LoRA r=16, from S1-M5)
+- Latest milestone: **S1-M7 — Feedback Loop & Correction Fine-Tuning** (complete)
+- Latest result: val WER **34.05%** (v2 + 108 corrections, continued from v2 checkpoint)
+- Serving: Model v2 live via WebSocket (P50 ~1.5s CPU latency, S1-M6)
+- Model v2 (S1-M5): val WER 47.95% deterministic (small.en + LoRA r=16)
 - Platform: macOS (Apple Silicon, CPU inference)
 - Data: single-speaker, labeled audio + transcripts (not included in repo)
 

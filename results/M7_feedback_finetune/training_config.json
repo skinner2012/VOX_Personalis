@@ -1,0 +1,13 @@
+{
+  "model": "small.en",
+  "lora_rank": 16,
+  "dropout": 0.15,
+  "batch_size": 4,
+  "epochs": 3,
+  "lr": 0.0001,
+  "n_corrections": 108,
+  "n_original": 2897,
+  "batch_id": "20260317_110057",
+  "training_mode": "continued from checkpoint",
+  "source_checkpoint": "./out/capacity_scaling/20260304-103236/checkpoint"
+}

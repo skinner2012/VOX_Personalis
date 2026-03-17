@@ -1,0 +1,23 @@
+{
+  "training_time_sec": 6295.775686979294,
+  "epochs_trained": 3.0,
+  "train_loss": 3.2534411612977374,
+  "train_samples_per_second": 1.432,
+  "wer_history": [
+    {
+      "epoch": 1.0,
+      "wer": 0.42524916943521596,
+      "step": 188
+    },
+    {
+      "epoch": 2.0,
+      "wer": 0.3477297895902547,
+      "step": 376
+    },
+    {
+      "epoch": 3.0,
+      "wer": 0.34053156146179403,
+      "step": 564
+    }
+  ]
+}

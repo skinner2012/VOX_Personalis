@@ -1,0 +1,21 @@
+{
+  "split": "val",
+  "aggregate": {
+    "sample_count": 361,
+    "total_duration_sec": 1649.645,
+    "total_words": "1806",
+    "total_chars": "8601",
+    "wer": 0.34053156146179403,
+    "cer": 0.23573652169800932,
+    "insertions": 94,
+    "deletions": 42,
+    "substitutions": 479
+  },
+  "comparison": {
+    "baseline_wer": 0.4402,
+    "finetuned_wer": 0.34053156146179403,
+    "absolute_improvement": 0.09966843853820595,
+    "relative_improvement_pct": 22.641626201318935,
+    "improved": "True"
+  }
+}

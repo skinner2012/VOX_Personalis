@@ -31,30 +31,34 @@ def _wav_duration_sec(wav_path: Path) -> float:
         return wf.getnframes() / wf.getframerate()
 
 
-def scan_pending_corrections(feedback_dir: Path) -> list[Path]:
-    """Return correction dirs that have not yet been consumed.
+def scan_pending_corrections(
+    feedback_dir: Path,
+    include_consumed: bool = False,
+) -> list[Path]:
+    """Return correction dirs, optionally including already-consumed ones.
 
-    A directory is pending if it contains audio.wav + correction.json
-    and does NOT contain consumed.marker.
+    A directory is a valid correction if it contains audio.wav + correction.json.
+    By default, only unconsumed directories (no consumed.marker) are returned.
 
     Args:
         feedback_dir: Root feedback directory
+        include_consumed: If True, include directories with consumed.marker
 
     Returns:
-        Sorted list of Path objects for each unconsumed correction directory
+        Sorted list of Path objects for each correction directory
     """
-    pending: list[Path] = []
+    results: list[Path] = []
     if not feedback_dir.exists():
-        return pending
+        return results
     for child in sorted(feedback_dir.iterdir()):
         if (
             child.is_dir()
             and (child / "audio.wav").exists()
             and (child / "correction.json").exists()
-            and not (child / "consumed.marker").exists()
+            and (include_consumed or not (child / "consumed.marker").exists())
         ):
-            pending.append(child)
-    return pending
+            results.append(child)
+    return results
 
 
 def generate_manifest_rows(correction_dirs: list[Path]) -> pd.DataFrame:

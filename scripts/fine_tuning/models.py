@@ -166,14 +166,16 @@ def load_checkpoint(
     checkpoint_path: str,
     base_model_name: str,
     device: str = "cpu",
+    for_training: bool = False,
 ) -> tuple[PeftModel, WhisperProcessor, str]:
     """
-    Load fine-tuned LoRA checkpoint for evaluation.
+    Load fine-tuned LoRA checkpoint for evaluation or continued training.
 
     Args:
         checkpoint_path: Path to saved LoRA adapter
         base_model_name: Base model identifier
         device: Target device
+        for_training: If True, set model to training mode instead of eval
 
     Returns:
         Tuple of (model, processor, actual_device)
@@ -189,10 +191,14 @@ def load_checkpoint(
     base_model = base_model.to(actual_device)  # type: ignore[arg-type]
 
     print(f"Loading LoRA adapter from: {checkpoint_path}")
-    model = PeftModel.from_pretrained(base_model, checkpoint_path)
+    model = PeftModel.from_pretrained(base_model, checkpoint_path, is_trainable=for_training)
 
-    print("Setting model to evaluation mode")
-    model.eval()
+    if for_training:
+        print("Setting model to training mode (continued fine-tuning)")
+        model.train()
+    else:
+        print("Setting model to evaluation mode")
+        model.eval()
 
     # Load processor
     processor = WhisperProcessor.from_pretrained(model_id)

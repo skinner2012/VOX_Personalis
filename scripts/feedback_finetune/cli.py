@@ -38,6 +38,11 @@ Example:
     parser.add_argument(
         "--model", default="small.en", help="Base model shorthand (default: small.en)"
     )
+    parser.add_argument(
+        "--checkpoint_path",
+        default=None,
+        help="Path to LoRA checkpoint for continued training (default: fresh LoRA)",
+    )
     parser.add_argument("--lora_rank", type=int, default=16, help="LoRA rank (default: 16)")
     parser.add_argument("--dropout", type=float, default=0.1, help="LoRA dropout (default: 0.1)")
     parser.add_argument("--device", default="cpu", help="Device: cpu, mps, cuda (default: cpu)")
@@ -48,6 +53,13 @@ Example:
     )
     parser.add_argument("--epochs", type=int, default=3, help="Max training epochs (default: 3)")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate (default: 1e-4)")
+
+    # Corrections
+    parser.add_argument(
+        "--include_consumed",
+        action="store_true",
+        help="Include previously consumed corrections in training",
+    )
 
     # Misc
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
@@ -78,12 +90,13 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Step 1: Scan pending corrections
     # ------------------------------------------------------------------
-    print(f"[M7]  Scanning {feedback_dir} for pending corrections...")
-    pending = scan_pending_corrections(feedback_dir)
+    scan_label = "all" if args.include_consumed else "pending"
+    print(f"[M7]  Scanning {feedback_dir} for {scan_label} corrections...")
+    pending = scan_pending_corrections(feedback_dir, include_consumed=args.include_consumed)
     if not pending:
-        print("[M7]  No pending corrections found — exiting.")
+        print(f"[M7]  No {scan_label} corrections found — exiting.")
         sys.exit(0)
-    print(f"[M7]  Found {len(pending)} pending correction(s)")
+    print(f"[M7]  Found {len(pending)} {scan_label} correction(s)")
 
     # ------------------------------------------------------------------
     # Step 2: Set up batch output directory
@@ -118,15 +131,32 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Step 4: Set up model
     # ------------------------------------------------------------------
-    from fine_tuning.models import setup_model_and_processor
+    if args.checkpoint_path:
+        from fine_tuning.models import load_checkpoint
 
-    print(f"[M7]  Loading {args.model} + LoRA r={args.lora_rank}...")
-    model, processor, actual_device = setup_model_and_processor(
-        model_name=args.model,
-        lora_rank=args.lora_rank,
-        device=args.device,
-        lora_dropout=args.dropout,
-    )
+        checkpoint_path = Path(args.checkpoint_path)
+        if not checkpoint_path.exists():
+            print(f"[error] Checkpoint not found: {checkpoint_path}", file=sys.stderr)
+            sys.exit(1)
+        print(f"[M7]  Loading checkpoint from {checkpoint_path} for continued training...")
+        model, processor, actual_device = load_checkpoint(
+            checkpoint_path=str(checkpoint_path),
+            base_model_name=args.model,
+            device=args.device,
+            for_training=True,
+        )
+        training_mode = "continued from checkpoint"
+    else:
+        from fine_tuning.models import setup_model_and_processor
+
+        print(f"[M7]  Loading {args.model} + fresh LoRA r={args.lora_rank}...")
+        model, processor, actual_device = setup_model_and_processor(
+            model_name=args.model,
+            lora_rank=args.lora_rank,
+            device=args.device,
+            lora_dropout=args.dropout,
+        )
+        training_mode = "fresh LoRA from base model"
 
     # ------------------------------------------------------------------
     # Step 5: Prepare datasets
@@ -191,6 +221,8 @@ def main() -> None:
             "n_corrections": len(corrections_df),
             "n_original": len(original_train_df),
             "batch_id": batch_id,
+            "training_mode": training_mode,
+            "source_checkpoint": args.checkpoint_path,
         },
     )
     print(f"[M7]  Checkpoint saved → {checkpoint_dir}")
@@ -213,6 +245,7 @@ def main() -> None:
         split="val",
         device=actual_device,
         verbose=args.verbose,
+        temperature=0.0,
     )
 
     predictions_csv = batch_dir / "predictions.csv"
@@ -241,7 +274,9 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Step 10: Comparison report
     # ------------------------------------------------------------------
-    _write_comparison_report(batch_dir, eval_metrics, len(corrections_df), len(original_train_df))
+    _write_comparison_report(
+        batch_dir, eval_metrics, len(corrections_df), len(original_train_df), training_mode
+    )
 
     print(f"\n[M7]  Done. Results in {batch_dir}")
 
@@ -251,6 +286,7 @@ def _write_comparison_report(
     eval_metrics: dict,
     n_corrections: int,
     n_original: int,
+    training_mode: str = "fresh LoRA from base model",
 ) -> None:
     """Generate a markdown comparison report."""
     agg = eval_metrics.get("aggregate", {})
@@ -285,7 +321,7 @@ def _write_comparison_report(
 
 ## Notes
 
-- Fresh LoRA from base model (not continued from v2 checkpoint)
+- Training mode: {training_mode}
 - Merged original train + corrections to prevent catastrophic forgetting
 - textnorm\\_v2 applied to all transcripts during training and evaluation
 """

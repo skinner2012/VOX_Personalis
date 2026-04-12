@@ -10,26 +10,55 @@ reproducible system design** for personalization workflows.
 This project treats speech recognition as a **system engineering problem**,
 not a demo.
 
+## Table of Contents
+
+- [Motivation](#motivation)
+- [Milestones](#milestones)
+  - [S1-M0 — Data Inventory & Risk Scan](#s1-m0--data-inventory--risk-scan)
+  - [S1-M1 — Dataset Versioning (v1)](#s1-m1--dataset-versioning-v1)
+  - [S1-M2 — Baseline Model & Offline Evaluation](#s1-m2--baseline-model--offline-evaluation)
+  - [S1-M3 — Personalization & Fine-Tuning](#s1-m3--personalization--fine-tuning)
+  - [S1-M4 — Targeted Improvements](#s1-m4--targeted-improvements--controlled-model-upgrades)
+  - [S1-M4a — Error Analysis](#s1-m4a--error-analysis--targeted-improvement-hypotheses)
+  - [S1-M4b — Normalization Fix](#s1-m4b--normalization-fix)
+  - [S1-M5 — Model Capacity Scaling](#s1-m5--model-capacity-scaling)
+  - [S1-M6 — Minimal Viable Serving](#s1-m6--minimal-viable-serving-mvs)
+  - [S1-M7 — Feedback Loop](#s1-m7--feedback-loop--correction-fine-tuning)
+  - [S1-M8 — Minimal Ops Layer](#s1-m8--minimal-ops-layer)
+- [Repository Structure](#repository-structure)
+- [What This Project Is Not](#what-this-project-is-not)
+- [Status](#status)
+- [Development](#development)
+- [License](#license)
+
 ______________________________________________________________________
 
 ## Motivation
 
-General-purpose ASR systems often struggle with non-standard speech patterns,
-including Deaf accents and atypical pronunciation.
+This project exists to solve two problems at the same time.
 
-As a Deaf speaker myself, I want to answer a very practical question:
+**Problem 1: General-purpose ASR does not work well for my voice.**
+As a Deaf speaker, my pronunciation patterns fall outside what most speech
+recognition systems are trained on. Services like Google's Project Euphonia
+and Relate exist, but they are platform-locked — I cannot use them in my own
+tools, on my own terms, or in contexts those products were not designed for.
+I want a personalized model I actually own: one I can run locally, embed in
+any workflow, and improve whenever I collect new data.
+
+**Problem 2: Building this is how I learn.** Instead of studying ML theory
+in isolation, I wanted to learn by solving a real problem — model fine-tuning,
+evaluation methodology, serving infrastructure, feedback loops, and the
+operational discipline that holds it all together. Every milestone in this
+repo is a lesson in how ML systems actually work, from data inventory through
+production serving.
+
+VOX Personalis is the result: an engineering-first exploration of
+single-speaker ASR personalization, answering one practical question:
 
 > *Given a small, labeled, single-speaker dataset, can personalization be done
 > in a controlled, explainable, and engineering-sound way?*
 
-Before touching any model training, this project focuses on **understanding the data,
-its risks, and its constraints**.
-
-______________________________________________________________________
-
-## Project Philosophy
-
-This repository follows a **spec-first, milestone-driven** approach.
+The repository follows a **spec-first, milestone-driven** approach:
 
 - Specifications define behavior and scope **before** implementation.
 - Each milestone answers a concrete engineering question.
@@ -378,6 +407,26 @@ Key findings:
 - **Implementation detail**: `is_trainable=True` in `PeftModel.from_pretrained()` is
   required; `model.train()` alone does not re-enable LoRA gradients
 
+### S1-M8 — Minimal Ops Layer
+
+Goal:
+
+- Prevent system and cost from silently drifting out of control.
+
+Key questions:
+
+- How much does each inference cost, and how do we keep spend bounded?
+- How do we trace individual requests through the system?
+
+Key concepts:
+
+- Per-inference cost estimation (rough is acceptable)
+- Daily / weekly usage aggregation
+- Cost guardrails: reject, degrade, or queue when limits are exceeded
+- Basic observability: request ID traceability
+
+> **Status:** Not yet started.
+
 ______________________________________________________________________
 
 ## Repository Structure
@@ -385,7 +434,9 @@ ______________________________________________________________________
 ```text
 VOX_Personalis/
 ├── specs/                    # Authoritative specifications (contract-first)
-├── configs/                  # Frozen configuration files (e.g. DECODE_V1.json)
+│   └── README.md             # Spec index with links to all milestones
+├── configs/
+│   └── DECODE_V1.json        # Frozen decoding config (locked after M3)
 ├── scripts/
 │   ├── data_inventory/       # S1-M0: Data inventory CLI
 │   ├── dataset_versioning/   # S1-M1: Dataset versioning CLI
@@ -393,12 +444,25 @@ VOX_Personalis/
 │   ├── fine_tuning/          # S1-M3/M4/M5: LoRA fine-tuning CLI
 │   ├── error_analysis/       # S1-M4a: Error analysis CLI
 │   ├── serving/              # S1-M6: Minimal Viable Serving
-│   └── feedback_finetune/    # S1-M7: Feedback-loop fine-tuning CLI
-├── Dockerfile                # Cloud-readiness artifact (S1-M6)
-├── results/                  # Per-milestone result archives (gitignored)
-├── data/                     # (Local only; not committed)
+│   ├── feedback_finetune/    # S1-M7: Feedback-loop fine-tuning CLI
+│   └── code_quality_check.sh # Ruff, mypy, mdformat, shellcheck runner
+├── results/                  # Per-milestone result archives
+│   ├── M0_data_inventory/    # Inventory report + summary JSON
+│   ├── M1_dataset_v1/        # Dataset v1 report + summary JSON
+│   ├── M2_baseline_eval/     # Baseline metrics (base.en, small.en)
+│   ├── M3_fine_tuning/       # Experiment log, test audit, run metrics
+│   ├── M4_model_improvement/ # Controlled experiment log, v1.1 metrics
+│   ├── M4a_error_analysis/   # Error distribution, hypotheses, worst samples
+│   ├── M4b_normalization_fix/# Normalization experiment results
+│   ├── M5_capacity_scaling/  # Val metrics, predictions, comparison report
+│   └── M7_feedback_finetune/ # Merged manifest, predictions, training config
+├── data/                     # Local audio + transcripts (not committed)
 ├── out/                      # Generated artifacts (gitignored)
+├── pyproject.toml            # Project metadata, dependencies, tool config
+├── Dockerfile                # Cloud-readiness artifact (S1-M6)
+├── AGENTS.md                 # Claude Code agent instructions
 ├── DATASET-VERSIONING-STRATEGY.md
+├── LICENSE                   # MIT License
 └── README.md
 ```
 

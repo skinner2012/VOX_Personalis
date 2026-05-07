@@ -6,6 +6,46 @@
 
 ______________________________________________________________________
 
+## Table of Contents
+
+- [Problem](#problem)
+- [Core Product Flow](#core-product-flow)
+- [Constraints](#constraints)
+- [10x Vision](#10x-vision)
+- [Hardware](#hardware)
+- [What Is Out of Scope (Phase 1)](#what-is-out-of-scope-phase-1)
+- [Accepted Phase 1 Limitations](#accepted-phase-1-limitations)
+- [Baseline to Beat](#baseline-to-beat)
+- [Objective](#objective)
+- [Naming Conventions](#naming-conventions)
+- [Milestone Sequence](#milestone-sequence)
+- [Pre-work: Day 0 Checklist](#pre-work-day-0-checklist-2h-blocks-everything)
+- [System Architecture (Layer 1)](#system-architecture-layer-1)
+- [Component Specs](#component-specs)
+  - [TextConsumer Protocol](#textconsumer-protocol)
+  - [WebConsumer](#webconsumer)
+  - [VADSegmenter Config (Phase 1 values)](#vadsegmenter-config-phase-1-values)
+  - [Moonshine v2 Integration](#moonshine-v2-integration)
+  - [Gemma 4 GGUF Integration](#gemma-4-gguf-integration)
+  - [Chrome Frontend](#chrome-frontend)
+  - [Daemon CLI](#daemon-cli)
+- [Module Structure](#module-structure)
+- [Evaluation Specs](#evaluation-specs)
+  - [M0: Moonshine v2 Baseline WER](#m0-moonshine-v2-baseline-wer)
+  - [M1: Moonshine v2 Fine-tuning](#m1-moonshine-v2-fine-tuning)
+  - [M2: Gemma 4 Correction Evaluation](#m2-gemma-4-correction-evaluation)
+- [Error / Rescue Registry (Layer 1)](#error--rescue-registry-layer-1)
+- [Success Criteria (5-Day Demo)](#success-criteria-5-day-demo)
+- [Layer 2: AX Integration Stub (Post-demo)](#layer-2-ax-integration-stub-post-demo)
+  - [Decisions Made (D1–D7)](#decisions-made-d1d7)
+  - [IPC Wire Format](#ipc-wire-format)
+  - [Swift AX Injector Contract](#swift-ax-injector-contract)
+  - [Swap to AX](#swap-to-ax)
+  - [MVP 1 Pass Criterion](#mvp-1-pass-criterion)
+- [Pre-Implementation Blockers](#pre-implementation-blockers)
+
+______________________________________________________________________
+
 ## Problem
 
 Stage 1 ended with a fine-tuned Whisper small.en model at 34.05% val WER.
@@ -143,6 +183,27 @@ Two-layer plan:
 
 - **Layer 1 (now):** Evaluate + Python pipeline → Chrome demo
 - **Layer 2 (post-demo):** AX injection → Live Captions Type to Speak
+
+______________________________________________________________________
+
+## Naming Conventions
+
+Two naming schemes are used in this spec. They are related but distinct.
+
+**Phase 1 / Phase 2 / Phase 3** — scope phases of Stage 2:
+
+- **Phase 1 (this spec):** macOS only — Python daemon + Chrome display + AX injection
+- **Phase 2 (future):** FastAPI serving layer + browser extension
+- **Phase 3 (future):** Android client
+
+**Phase A / Phase B / Phase C** — time sub-phases within Phase 1:
+
+- **Phase A:** Prove the core — evaluate and fine-tune Moonshine v2, add Gemma 4 (M0–M2)
+- **Phase B:** Ship the demo — Chrome live caption display (M3)
+- **Phase C:** Production integration — AX injection into Live Captions (M4–M5, post-demo)
+
+All milestones in this spec are Phase 1. Phase A/B/C are the delivery sub-phases
+within it.
 
 ______________________________________________________________________
 

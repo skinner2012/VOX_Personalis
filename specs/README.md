@@ -11,6 +11,8 @@ must be explicit and documented.
 
 ## Index
 
+### Stage 1
+
 - [S1-M0](S1-M0-data-inventory.md) — Data Inventory & Risk Scan
 - [S1-M1](S1-M1-dataset-versioning.md) — Dataset Versioning (v1)
 - [S1-M2](S1-M2-baseline-and-offline-evaluation.md) — Baseline Model & Offline Evaluation
@@ -20,5 +22,10 @@ must be explicit and documented.
 - [S1-M4b](S1-M4b-normalization-fix.md) — Normalization Fix
 - [S1-M5](S1-M5-model-capacity-scaling.md) — Model Capacity Scaling (val WER 47.95%, deterministic)
 - [S1-M6](S1-M6-minimal-viable-serving.md) — Minimal Viable Serving (MVS)
-- [S1-M7](S1-M7-feedback-loop-correction-fine-tuning.md) — Feedback Loop & Correction
-  Fine-Tuning (val WER 34.05%, −13.90 pts)
+- [S1-M7](S1-M7-feedback-loop-correction-fine-tuning.md) — Feedback Loop & Correction Fine-Tuning
+  (val WER 34.05%, −13.90 pts)
+
+### Stage 2
+
+- [S2](S2-moonshine-gemma-pipeline.md) — Moonshine v2 + Gemma 4 ASR Pipeline
+  (replaces Whisper; Chrome demo; AX integration stub)

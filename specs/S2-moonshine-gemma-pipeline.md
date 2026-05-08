@@ -24,15 +24,15 @@ ______________________________________________________________________
 - [Component Specs](#component-specs)
   - [TextConsumer Protocol](#textconsumer-protocol)
   - [WebConsumer](#webconsumer)
-  - [VADSegmenter Config (Phase 1 values)](#vadsegmenter-config-phase-1-values)
-  - [Moonshine v2 Integration](#moonshine-v2-integration)
+  - [SileroVAD Config (Phase 1 values)](#silerovad-config-phase-1-values)
+  - [Moonshine v2 Streaming Integration](#moonshine-v2-streaming-integration)
   - [Gemma 4 GGUF Integration](#gemma-4-gguf-integration)
   - [Chrome Frontend](#chrome-frontend)
   - [Daemon CLI](#daemon-cli)
 - [Module Structure](#module-structure)
 - [Evaluation Specs](#evaluation-specs)
-  - [M0: Moonshine v2 Baseline WER](#m0-moonshine-v2-baseline-wer)
-  - [M1: Moonshine v2 Fine-tuning](#m1-moonshine-v2-fine-tuning)
+  - [M0: Moonshine v2 Streaming Baseline WER](#m0-moonshine-v2-streaming-baseline-wer)
+  - [M1: Moonshine v2 Streaming Fine-tuning](#m1-moonshine-v2-streaming-fine-tuning)
   - [M2: Gemma 4 Correction Evaluation](#m2-gemma-4-correction-evaluation)
 - [Error / Rescue Registry (Layer 1)](#error--rescue-registry-layer-1)
 - [Success Criteria (5-Day Demo)](#success-criteria-5-day-demo)
@@ -115,16 +115,38 @@ ______________________________________________________________________
 | Mac mini   | M4 Pro, 64GB RAM | Fine-tuning (M1), evaluation (M0, M2), development |
 | MBP M4 Pro | M4 Pro, 48GB RAM | Live demo (M3), daily driver                       |
 
-Both machines run macOS 14.0+ (Sonoma), Apple Silicon. MLX and llama.cpp Metal
-acceleration apply to both. Fine-tuning jobs run on Mac mini (desktop, can run
-overnight). The hiring manager demo runs on MBP (portable).
+Both machines run macOS 14.0+ (Sonoma), Apple Silicon. PyTorch MPS (Metal
+Performance Shaders) backend and llama.cpp Metal acceleration apply to both.
+Fine-tuning jobs run on Mac mini (desktop, can run overnight). The hiring
+manager demo runs on MBP (portable).
+
+**Inference framework:** PyTorch + HuggingFace Transformers with MPS backend
+(`device = "mps"`). This is the same approach used for Whisper fine-tuning in
+S1.
+
+**Why not MLX?** MLX (Apple's Machine Learning eXtensions) was the original plan
+for faster Apple Silicon inference and fine-tuning. However, as of 2026-05-08:
+
+- `mlx-moonshine` does not exist as a pip package.
+- `mlx-audio` (by Blaizzy) supports Moonshine v1 only, NOT v2 streaming.
+- No `mlx-community/moonshine-streaming-*` weights exist on HuggingFace.
+- Moonshine v2 streaming (`MoonshineStreamingForConditionalGeneration`) is only
+  available via HuggingFace Transformers (PyTorch).
+- `mlx-tune` cannot fine-tune Moonshine v2 streaming (no MLX model exists).
+
+**Do not attempt MLX for Moonshine v2 streaming.** Use PyTorch + Transformers + MPS.
+
+**Fine-tuning framework:** PyTorch + PEFT/LoRA on MPS. Same LoRA approach as S1
+(target attention layers, rank=16, alpha=32) but different target layer names
+(Moonshine v2 streaming architecture, not Whisper).
 
 **Gemma on Mac mini (64GB):** 26B MoE Q4 is the primary choice — fits with 40GB+
 to spare for the OS and Moonshine. E2B is the fallback if 26B MoE GGUF is not
 yet available for llama.cpp.
 
 **Gemma on MBP (48GB):** Same choice — 48GB is sufficient for 26B MoE Q4
-(~10-12GB footprint) alongside Moonshine (2-4GB). Day 0 benchmark confirms.
+(~10-12GB footprint) alongside Moonshine (~1GB for medium). Day 0 benchmark
+confirms.
 
 ______________________________________________________________________
 
@@ -163,13 +185,20 @@ ______________________________________________________________________
 All prior evaluation used the same held-out val set and `textnorm_v2` normalization.
 New evals must use identical normalization for apples-to-apples comparison.
 
-| Model                                | WER (val set)              | Notes                           |
-| ------------------------------------ | -------------------------- | ------------------------------- |
-| Whisper small.en (out-of-box)        | ~55% (estimated)           | Pre-fine-tuning baseline        |
-| Whisper small.en (fine-tuned, S1-M7) | **34.05%**                 | Current best — the bar to clear |
-| Moonshine v2 (out-of-box)            | TBD — M0                   | First task                      |
-| Moonshine v2 (fine-tuned)            | Target: \<34.05%           | M1 gate                         |
-| Moonshine v2 + Gemma 4               | Target: ≤ fine-tuned alone | M2 gate                         |
+| Model                                           | WER (val set)              | Notes                                      |
+| ----------------------------------------------- | -------------------------- | ------------------------------------------ |
+| Whisper small.en (out-of-box)                   | ~55% (estimated)           | Pre-fine-tuning baseline                   |
+| Whisper small.en (fine-tuned, S1-M7)            | **34.05%**                 | Current best — the bar to clear            |
+| moonshine-streaming-small (out-of-box)          | TBD — M0                   | HF reported: 7.84% on general benchmarks   |
+| moonshine-streaming-medium (out-of-box)         | TBD — M0                   | HF reported: 6.65% on general benchmarks   |
+| moonshine-streaming-{small,medium} (fine-tuned) | Target: \<34.05%           | M1 gate — model chosen based on M0 results |
+| moonshine-streaming-{chosen} + Gemma 4          | Target: ≤ fine-tuned alone | M2 gate                                    |
+
+**Model selection:** M0 benchmarks both `UsefulSensors/moonshine-streaming-small`
+(123M params, 561MB) and `UsefulSensors/moonshine-streaming-medium` (245M params,
+1.06GB) on the val set. The model with better WER-to-latency tradeoff proceeds to
+M1 fine-tuning. If the gap is marginal (\<1% WER after fine-tuning), prefer small
+for faster iteration and lower resource usage.
 
 ______________________________________________________________________
 
@@ -213,17 +242,20 @@ ______________________________________________________________________
 PHASE A — PROVE THE CORE (Days 1–3)
 ┌─────────────────────────────────────────────────────────────────┐
 │ M0 — Moonshine v2 Baseline (~2–3h)                              │
-│   Install mlx-moonshine, run WER eval on existing val set.      │
+│   Install transformers+torch, run WER eval on existing val set. │
+│   Benchmark BOTH moonshine-streaming-small and -medium.         │
 │   Gate: does Moonshine v2 OOB WER beat Whisper OOB WER?        │
 │   (Fine-tuned Whisper = 34.05% — that's the bar to clear.)     │
-│   Output: "Moonshine v2 OOB = X% WER" — data, not assumption.  │
+│   Output: "small = X% WER, medium = Y% WER" + latency data.    │
+│   Decision: pick model for M1 based on WER-to-latency tradeoff.│
 └────────────────────────┬────────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────────┐
 │ M1 — Moonshine v2 Fine-tune (~1–2 days)                         │
-│   LoRA via mlx-tune on existing Deaf accent dataset.            │
+│   LoRA via PyTorch + PEFT on existing Deaf accent dataset.      │
+│   Uses MPS backend on M4 Pro (same approach as S1 Whisper).     │
 │   Gate: val WER < 34.05% (beats fine-tuned Whisper baseline).   │
-│   Output: fine-tuned Moonshine v2 checkpoint.                   │
+│   Output: fine-tuned Moonshine v2 streaming checkpoint.         │
 └────────────────────────┬────────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────────┐
@@ -261,25 +293,68 @@ ______________________________________________________________________
 
 ## Pre-work: Day 0 Checklist (~2h, blocks everything)
 
-These must pass before writing any Phase A code.
+These must pass before writing any Phase A code. Run on Mac mini (M4 Pro, 64GB).
 
 ```bash
-# 1. Verify mlx-moonshine v2 loads on M4 Pro
-pip install mlx-moonshine
-python -c "from moonshine import load_model; m = load_model('moonshine/base'); print('OK')"
-# If only v1 models available: file issue, fallback to ONNX + PyTorch for fine-tuning
+# 1. Verify Moonshine v2 streaming loads via HuggingFace Transformers
+pip install transformers torch torchaudio  # install latest; MoonshineStreaming requires recent transformers
+python -c "
+from transformers import AutoProcessor, MoonshineStreamingForConditionalGeneration
+import torch
 
-# 2. Verify Gemma 4 loads via llama.cpp
+device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+print(f'Device: {device}')
+
+# Test BOTH models
+for model_id in [
+    'UsefulSensors/moonshine-streaming-small',   # 123M params, 561MB
+    'UsefulSensors/moonshine-streaming-medium',   # 245M params, 1.06GB
+]:
+    print(f'Loading {model_id}...')
+    processor = AutoProcessor.from_pretrained(model_id)
+    model = MoonshineStreamingForConditionalGeneration.from_pretrained(
+        model_id, torch_dtype=torch.float32
+    ).to(device)
+    print(f'  OK — {sum(p.numel() for p in model.parameters())/1e6:.0f}M params')
+"
+# Both must load without error. If MPS fails: fallback to CPU (slower but works).
+# If model download fails: check HF token / network.
+
+# 2. Verify SileroVAD loads
+pip install silero-vad
+python -c "
+from silero_vad import load_silero_vad
+model = load_silero_vad()
+print('SileroVAD OK')
+"
+
+# 3. Verify Gemma 4 loads via llama.cpp
 # Download Gemma 4 E2B GGUF Q4 (~4GB) — confirm URL from Hugging Face
 # Build llama.cpp with Metal support on macOS
 cmake -B build -DGGML_METAL=ON && cmake --build build --config Release -j
 ./build/bin/llama-cli -m gemma-4-e2b-Q4_K_M.gguf -p "Correct: 'i want to talk about kubernets'" -n 50
 # Target: response in <800ms on M4 Pro
 
-# 3. Verify Gemma 4 larger model (optional, if 26B MoE GGUF exists)
+# 4. Verify Gemma 4 larger model (optional, if 26B MoE GGUF exists)
 # Check: does llama.cpp support Gemma 4 MoE architecture?
 # Check: actual VRAM footprint of 26B MoE Q4 on M4 Pro
 # If verified: upgrade Gemma spec to 26B MoE; else: stay with E2B
+
+# 5. Verify PEFT/LoRA loads for Moonshine streaming
+pip install peft
+python -c "
+from peft import get_peft_model, LoraConfig
+print('PEFT OK')
+"
+```
+
+**Moonshine model decision tree:**
+
+```text
+Day 0 result:
+  Both small + medium load on MPS → benchmark both in M0, pick winner
+  Only one loads on MPS → use whichever loads
+  Neither loads on MPS → fallback to CPU inference (slower, still works)
 ```
 
 **Gemma model decision tree:**
@@ -300,14 +375,15 @@ ______________________________________________________________________
 │ PYTHON DAEMON  (scripts/vox_daemon/)                            │
 │                                                                 │
 │  Microphone capture (sounddevice, 16kHz, 16-bit mono)          │
-│       │ 30ms frames                                             │
+│       │ audio chunks                                            │
 │       ▼                                                         │
-│  VADSegmenter (scripts/serving/vad.py, reused as-is)           │
-│  max_utterance_sec=3.0, silence_ms=1000, mode=3                │
+│  SileroVAD (silero-vad, neural network VAD)                    │
+│  threshold=0.5, min_speech_ms=300, max_utterance_sec=3.0       │
+│  (replaces webrtcvad — better for atypical/Deaf speech)        │
 │       │ on segment boundary (complete utterance buffer)         │
 │       ▼                                                         │
-│  Moonshine v2 MLX (mlx-moonshine)                              │
-│       │ Stage A: raw transcript  (fast, ~100–150ms)             │
+│  Moonshine v2 Streaming (HuggingFace Transformers, MPS)        │
+│       │ Stage A: raw transcript  (~73–107ms, model-dependent)    │
 │       ├──────────────────────────────────────► consumer.on_stage_a()
 │       │                                                         │
 │       ▼ (concurrent, thread-based)                              │
@@ -316,9 +392,9 @@ ______________________________________________________________________
 │       │ Stage B: corrected text (~400–800ms)                    │
 │       └──────────────────────────────────────► consumer.on_stage_b()
 │                                                                  │
-│  TextConsumer (Protocol)                                        │
-│    Layer 1:  WebConsumer   ──► WebSocket server ──► Chrome      │
-│    Layer 2:  AXConsumer    ──► Swift injector ──► Live Captions │
+│  TextConsumer (Protocol)                                         │
+│    Layer 1:  WebConsumer   ──► WebSocket server ──► Chrome       │
+│    Layer 2:  AXConsumer    ──► Swift injector ──► Live Captions  │
 └────────────────────────────────────────────────────────────────┘
        │ WebSocket (localhost:8765)
        ▼
@@ -408,38 +484,81 @@ ws.onmessage = (event) => {
 
 ______________________________________________________________________
 
-### VADSegmenter Config (Phase 1 values)
+### SileroVAD Config (Phase 1 values)
 
-File: `scripts/vox_daemon/cli.py` (passed as constructor args)
+File: `scripts/vox_daemon/silero_vad.py`
+
+**Why SileroVAD instead of webrtcvad?** The existing `scripts/serving/vad.py`
+uses webrtcvad (rule-based signal processing). For Deaf/accented speech with
+atypical prosody and pauses, a neural VAD is more robust — it was trained on
+diverse speech data and handles unusual vocal patterns better. The existing
+webrtcvad code in `scripts/serving/vad.py` remains untouched.
 
 ```python
-VADSegmenter(
-    mode=3,                  # most aggressive non-speech detection
-    silence_ms=1000,         # 1s silence ends utterance
-    min_utterance_ms=300,    # skip clips shorter than 300ms
-    max_utterance_sec=3.0,   # OVERRIDE from default 30.0 — keeps ASR in 150ms budget
-)
+from silero_vad import load_silero_vad, get_speech_timestamps
+import torch
+
+class SileroVADSegmenter:
+    SAMPLE_RATE = 16000
+
+    def __init__(
+        self,
+        *,
+        threshold: float = 0.5,          # speech probability threshold
+        min_silence_ms: int = 1000,       # 1s silence ends utterance
+        min_speech_ms: int = 300,         # skip clips shorter than 300ms
+        max_utterance_sec: float = 3.0,   # keeps ASR in 150ms budget
+    ):
+        self.model = load_silero_vad()
+        # ... segment buffering logic, same interface pattern as VADSegmenter
 ```
 
-**Why 3.0s max:** Moonshine v2 on M4 Pro processes ~3s audio in ~100–150ms.
-Segments longer than 3s risk missing the Stage A \<300ms latency target.
-Configurable: `--max-utterance-sec` CLI flag. Default: 3.0. Hard upper bound: 8.0.
+**Interface contract:** `SileroVADSegmenter` exposes the same method pattern as
+the existing `VADSegmenter` — `feed(audio_chunk) -> bytes | None`, `flush()`,
+`buffer_duration_ms()` — so the daemon pipeline can use either interchangeably.
+
+**Why 3.0s max:** Moonshine v2 streaming on M4 Pro processes ~3s audio in
+~73–107ms (model-dependent). Segments longer than 3s risk missing the Stage A
+\<300ms latency target. Configurable: `--max-utterance-sec` CLI flag. Default:
+3.0. Hard upper bound: 8.0.
 
 ______________________________________________________________________
 
-### Moonshine v2 Integration
+### Moonshine v2 Streaming Integration
 
 File: `scripts/vox_daemon/moonshine.py`
 
+**Architecture note:** Moonshine v2 streaming uses an ergodic encoder with
+sliding-window attention — a fundamentally different architecture from Whisper.
+The eval and fine-tuning code are NEW (not adapted from existing S1 Whisper
+code). The HuggingFace Transformers API is the only supported inference path;
+there is no MLX implementation of Moonshine v2 streaming.
+
 ```python
+import torch
+from transformers import AutoProcessor, MoonshineStreamingForConditionalGeneration
+
 # Load once at daemon startup
-model = load_moonshine_model(checkpoint_path or "moonshine/base")
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+
+def load_moonshine(model_id: str = "UsefulSensors/moonshine-streaming-small"):
+    """Load model + processor. Use checkpoint path for fine-tuned model."""
+    processor = AutoProcessor.from_pretrained(model_id)
+    model = MoonshineStreamingForConditionalGeneration.from_pretrained(
+        model_id, torch_dtype=torch.float32
+    ).to(device)
+    return model, processor
+
+model, processor = load_moonshine(checkpoint_path or "UsefulSensors/moonshine-streaming-small")
 
 def transcribe(audio_bytes: bytes) -> str:
     """Synchronous. Runs on ASR worker thread. Returns raw transcript."""
     audio = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
     try:
-        return model.transcribe(audio)  # mlx-moonshine API
+        inputs = processor(audio, sampling_rate=16000, return_tensors="pt").to(device)
+        with torch.no_grad():
+            generated_ids = model.generate(**inputs, max_new_tokens=256)
+        return processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
     except Exception as e:
         log.error("Moonshine exception: %s — skipping segment", e)
         return ""   # empty string signals skip: no Stage A update
@@ -451,8 +570,18 @@ def transcribe(audio_bytes: bytes) -> str:
 - Empty string return → daemon skips Stage A + Stage B for this segment
 - OOM → same path (exception caught)
 
-**Checkpoint:** defaults to out-of-box Moonshine v2 base. After M1 fine-tuning,
-pass `--checkpoint path/to/finetuned` to the daemon CLI.
+**Model IDs (HuggingFace):**
+
+| Model ID                                   | Params | File size | General WER |
+| ------------------------------------------ | ------ | --------- | ----------- |
+| `UsefulSensors/moonshine-streaming-small`  | 123M   | 561 MB    | 7.84%       |
+| `UsefulSensors/moonshine-streaming-medium` | 245M   | 1.06 GB   | 6.65%       |
+
+Default: `moonshine-streaming-small`. M0 benchmarks both; winner proceeds to M1.
+
+**Checkpoint:** defaults to out-of-box HuggingFace model. After M1 fine-tuning,
+pass `--moonshine-model path/to/finetuned` to the daemon CLI (this points to a
+local directory containing the PEFT-merged checkpoint in Transformers format).
 
 ______________________________________________________________________
 
@@ -558,22 +687,28 @@ File: `scripts/vox_daemon/cli.py`
 
 ```bash
 python -m scripts.vox_daemon \
-  --moonshine-checkpoint ./out/moonshine_finetune/checkpoint \
+  --moonshine-model ./out/moonshine_finetune/checkpoint \
   --gemma-model ./models/gemma-4-e2b-Q4_K_M.gguf \
   --max-utterance-sec 3.0 \
   --silence-ms 1000 \
+  --vad-threshold 0.5 \
   --port 8765 \
   --debug            # prints Stage A and Stage B to stdout per segment
 ```
 
+`--moonshine-model` accepts either a HuggingFace model ID
+(`UsefulSensors/moonshine-streaming-small`) or a local directory path
+(fine-tuned PEFT-merged checkpoint). Default: `UsefulSensors/moonshine-streaming-small`.
+
 **Startup sequence:**
 
-1. Load Moonshine model (fails fast if checkpoint invalid)
+1. Load Moonshine model via Transformers (fails fast if model ID/path invalid)
+1. Load SileroVAD model
 1. Spawn Gemma subprocess, verify it responds to a test prompt
 1. Create WebSocket server on `--port`
 1. Serve `static/index.html` at root
 1. `open http://localhost:{port}` (macOS)
-1. Start mic capture → VAD loop
+1. Start mic capture → SileroVAD loop
 
 ______________________________________________________________________
 
@@ -582,13 +717,18 @@ ______________________________________________________________________
 ```text
 scripts/
   serving/
-    vad.py              ← REUSE AS-IS (no changes)
-    api.py              ← Phase 2 (FastAPI, untouched)
+    vad.py              ← UNTOUCHED (webrtcvad, S1 code — do not modify)
+    api.py              ← UNTOUCHED (FastAPI, Phase 2)
+  baseline_eval/
+    normalization.py    ← REUSE: textnorm_v2 / create_normalizer (no changes)
+  feedback_finetune/
+    manifest.py         ← REUSE: adapt for Moonshine after M1 (no changes now)
   vox_daemon/           ← NEW: Phase B daemon
     __main__.py
     cli.py
     consumer.py         # TextConsumer Protocol + WebConsumer
-    moonshine.py        # Moonshine v2 MLX integration
+    moonshine.py        # Moonshine v2 Streaming (Transformers, MPS)
+    silero_vad.py       # SileroVAD segmenter (replaces webrtcvad for S2)
     gemma.py            # Gemma 4 GGUF subprocess
     ws_server.py        # WebSocket broadcast server
     static/
@@ -596,55 +736,269 @@ scripts/
   moonshine_eval/       ← NEW: M0 + M2 evaluation
     __main__.py
     cli.py
-    eval.py             # WER eval (adapts scripts/baseline_eval/ harness)
+    eval.py             # WER eval — NEW code, uses Transformers API
+                        # Reuses textnorm_v2 from baseline_eval/normalization.py
+                        # Does NOT adapt/modify existing baseline_eval code
   moonshine_finetune/   ← NEW: M1 fine-tuning
     __main__.py
     cli.py
-    train.py            # mlx-tune integration
+    train.py            # PyTorch + PEFT/LoRA on MPS (not mlx-tune)
     eval.py             # checkpoint evaluation
 ```
 
-**Existing reuse:**
+**Existing code policy:** All S1 code under `scripts/` remains untouched. S2
+creates new modules alongside existing ones. Shared utilities (e.g.,
+`textnorm_v2`) are imported, not copied or modified.
 
-- `scripts/baseline_eval/normalization.py` — `textnorm_v2` for WER (no changes)
-- `scripts/serving/vad.py` — `VADSegmenter` (no changes, used directly)
+**Existing reuse (import only, no modifications):**
+
+- `scripts/baseline_eval/normalization.py` — `textnorm_v2` for WER
 - `scripts/feedback_finetune/manifest.py` — adapt for Moonshine after M1
 
 ______________________________________________________________________
 
 ## Evaluation Specs
 
-### M0: Moonshine v2 Baseline WER
+### M0: Moonshine v2 Streaming Baseline WER
+
+**Important:** M0 benchmarks BOTH small and medium models on the same val set.
+The output determines which model proceeds to M1 fine-tuning.
 
 ```bash
+# Benchmark moonshine-streaming-small
 python -m scripts.moonshine_eval \
-  --manifest ./out/dataset_v1/.../manifest.csv \
-  --model moonshine/base \
+  --manifest <PATH_TO_VAL_MANIFEST> \
+  --model UsefulSensors/moonshine-streaming-small \
   --norm-version 2     # textnorm_v2, same as all prior evals
+
+# Benchmark moonshine-streaming-medium
+python -m scripts.moonshine_eval \
+  --manifest <PATH_TO_VAL_MANIFEST> \
+  --model UsefulSensors/moonshine-streaming-medium \
+  --norm-version 2
 ```
 
-**Output:**
+**Manifest path:** The user will provide the path to the val set directory
+containing audio clips and a CSV file. The manifest CSV must have columns for
+audio file paths and reference transcripts. Verify column names match before
+running.
+
+**Inference API (Transformers):**
+
+```python
+from transformers import AutoProcessor, MoonshineStreamingForConditionalGeneration
+import torch
+
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+processor = AutoProcessor.from_pretrained(model_id)
+model = MoonshineStreamingForConditionalGeneration.from_pretrained(
+    model_id, torch_dtype=torch.float32
+).to(device)
+
+# Per audio file:
+inputs = processor(audio_array, sampling_rate=16000, return_tensors="pt").to(device)
+with torch.no_grad():
+    generated_ids = model.generate(**inputs, max_new_tokens=256)
+transcript = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+```
+
+**Output (per model):**
 
 - WER on val set (compare to Whisper OOB and fine-tuned Whisper 34.05%)
 - Latency per segment (p50, p95) at 1s, 2s, 3s audio lengths
 - Decision: if OOB WER > 50%, fine-tuning is mandatory before demo
 
-### M1: Moonshine v2 Fine-tuning
+**Model selection decision:**
 
-Uses mlx-tune with LoRA. Adapt target layers from Whisper (q_proj+v_proj) to
-Moonshine's attention layers (verify exact names from mlx-moonshine model spec).
+```text
+M0 result:
+  medium WER meaningfully better (>1% gap) → use medium for M1
+  gap < 1% WER → use small for M1 (faster iteration, lower resource)
+  both WER > 50% → fine-tuning is critical; pick whichever is lower
+```
+
+### M1: Moonshine v2 Streaming Fine-tuning
+
+Uses PyTorch + PEFT/LoRA on MPS backend. This is the same LoRA approach as S1
+Whisper fine-tuning but with different target layer names (Moonshine v2 streaming
+architecture, not Whisper). The target layers must be discovered at implementation
+time by inspecting the model's named modules.
+
+**Architecture difference from Whisper:** Moonshine v2 streaming uses an ergodic
+encoder with sliding-window attention and a context adapter. The S1 Whisper LoRA
+targeted `q_proj` + `v_proj` — Moonshine's equivalent attention projection names
+will differ. Run `model.named_modules()` to find them.
+
+**Data pipeline difference from Whisper:** Whisper uses its own log-mel
+spectrogram feature extractor. Moonshine v2 streaming uses `AutoProcessor` from
+Transformers, which handles feature extraction differently. The training data
+loader must use the Moonshine processor, not Whisper's.
+
+#### S1 Fine-Tuning Baseline (carry-over config)
+
+The S1 Whisper fine-tuning ran M3→M7 with controlled ablations. The winning
+config from M5+M7 (34.05% val WER) is the starting point for Moonshine v2.
+Use these values as defaults. Only re-tune if the M1 gate fails.
+
+**S1 proven hyperparameters (carry over as-is):**
+
+| Parameter               | S1 Value | Source                                 |
+| ----------------------- | -------- | -------------------------------------- |
+| LoRA rank (r)           | 16       | M3 ablation: 16 beat 8 on ~700 samples |
+| LoRA alpha              | 32       | 2x rank, standard PEFT default         |
+| LoRA dropout            | 0.15     | M4 ablation: 0.15 beat 0.1, adopted    |
+| Learning rate           | 1e-4     | Stable across M3–M7, robust for PEFT   |
+| Batch size              | 4        | Hardware-constrained (M4 Pro memory)   |
+| Gradient accumulation   | 4        | Effective batch = 16                   |
+| Max epochs              | 3        | All runs converged by epoch 3          |
+| Early stopping patience | 2        | Conservative; never triggered in S1    |
+| Warmup steps            | 100      | ~7% of total steps                     |
+| Weight decay            | 0.0      | Never tuned; dropout sufficed          |
+| Bias                    | "none"   | Standard PEFT default                  |
+
+**Needs fresh discovery (Moonshine-specific):**
+
+| Parameter      | Why                                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| target_modules | Moonshine v2 streaming has different attention layer names than Whisper's `q_proj`+`v_proj`. Run `model.named_modules()` to discover. |
+| task_type      | Whisper used encoder-decoder. Moonshine streaming may need `SEQ_2_SEQ_LM` instead of `CAUSAL_LM`. Verify from model architecture.     |
+| MPS batch size | Moonshine's memory footprint differs from Whisper. May need to adjust batch_size or gradient_accumulation if OOM on MPS.              |
+
+**What we are NOT doing in S2 Phase A:**
+
+- No correction-then-reinforce cycle (S1-M7 style feedback loop). S2 Phase A
+  is a single fine-tuning pass on the existing dataset.
+- No hyperparameter ablation unless M1 gate fails. The S1 config is proven on
+  this dataset size (~700 samples); only re-tune if results demand it.
+
+**If M1 gate fails (WER >= 34.05% after 3 epochs):**
+
+1. Check target_modules — try including more layers (all attention projections)
+1. Try learning rate 5e-5 (S1 tested but found no improvement; may differ)
+1. Extend to 5 epochs with patience=3
+1. If still failing: the model may need more data, not more tuning
+
+#### CLI
 
 ```bash
 python -m scripts.moonshine_finetune \
-  --manifest ./out/dataset_v1/.../manifest.csv \
-  --base-model moonshine/base \
+  --manifest <PATH_TO_TRAIN_MANIFEST> \
+  --base-model UsefulSensors/moonshine-streaming-{small or medium} \
   --lora-rank 16 \
   --lora-alpha 32 \
+  --lora-dropout 0.15 \
+  --lr 1e-4 \
+  --batch-size 4 \
+  --grad-accum 4 \
+  --max-epochs 3 \
+  --patience 2 \
+  --warmup-steps 100 \
   --output ./out/moonshine_finetune/
 ```
 
-**Gate:** val WER < 34.05%. If not met after 3 epochs, extend training or adjust
-LoRA hyperparameters before proceeding.
+#### Fine-tuning recipe
+
+```python
+from transformers import (
+    AutoProcessor,
+    MoonshineStreamingForConditionalGeneration,
+    Seq2SeqTrainingArguments,
+    Seq2SeqTrainer,
+)
+from peft import get_peft_model, LoraConfig
+import torch
+
+device = "mps"
+model = MoonshineStreamingForConditionalGeneration.from_pretrained(
+    model_id, torch_dtype=torch.float32
+).to(device)
+processor = AutoProcessor.from_pretrained(model_id)
+
+# Step 1: Discover LoRA target layers (run once, then hardcode)
+# for name, module in model.named_modules():
+#     if "proj" in name: print(name)
+# Expected: attention projection layers similar to q_proj/v_proj but
+# with Moonshine-specific naming. Hardcode after discovery.
+
+lora_config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    target_modules=["TBD — discover from model.named_modules()"],
+    lora_dropout=0.15,
+    bias="none",
+    task_type="SEQ_2_SEQ_LM",  # verify: encoder-decoder like Whisper
+)
+model = get_peft_model(model, lora_config)
+
+# Step 2: Training arguments (S1 proven defaults)
+training_args = Seq2SeqTrainingArguments(
+    output_dir="./out/moonshine_finetune/",
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,     # effective batch = 16
+    learning_rate=1e-4,
+    num_train_epochs=3,
+    warmup_steps=100,
+    weight_decay=0.0,
+    eval_strategy="epoch",
+    save_strategy="epoch",
+    load_best_model_at_end=True,
+    metric_for_best_model="wer",
+    greater_is_better=False,
+    predict_with_generate=True,
+    generation_max_length=256,
+    fp16=False,                        # MPS does not support fp16 training
+)
+
+# Step 3: Trainer with early stopping
+from transformers import EarlyStoppingCallback
+trainer = Seq2SeqTrainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,       # Moonshine processor-prepared
+    eval_dataset=val_dataset,
+    processing_class=processor,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+)
+trainer.train()
+
+# Step 4: Save PEFT adapter + merge into standalone checkpoint
+model.save_pretrained("./out/moonshine_finetune/adapter")
+merged = model.merge_and_unload()
+merged.save_pretrained("./out/moonshine_finetune/checkpoint")
+processor.save_pretrained("./out/moonshine_finetune/checkpoint")
+```
+
+#### Frozen config pattern
+
+M1 must output a `frozen_config.json` alongside the checkpoint for
+reproducibility (matching S1 pattern from `scripts/fine_tuning/training.py`).
+This file records all hyperparameters, model ID, dataset path, and commit hash
+so any future run can reproduce the exact training conditions.
+
+```python
+import json, subprocess
+frozen = {
+    "base_model": model_id,
+    "lora_rank": 16, "lora_alpha": 32, "lora_dropout": 0.15,
+    "target_modules": [...],  # discovered values
+    "task_type": "SEQ_2_SEQ_LM",
+    "lr": 1e-4, "batch_size": 4, "grad_accum": 4,
+    "max_epochs": 3, "patience": 2, "warmup_steps": 100,
+    "weight_decay": 0.0,
+    "manifest": "<PATH_TO_TRAIN_MANIFEST>",
+    "git_commit": subprocess.check_output(
+        ["git", "rev-parse", "HEAD"]).decode().strip(),
+}
+with open("./out/moonshine_finetune/frozen_config.json", "w") as f:
+    json.dump(frozen, f, indent=2)
+```
+
+**Gate:** val WER < 34.05%. If not met after 3 epochs, follow the escalation
+path above ("If M1 gate fails").
+
+**Checkpoint output:** PEFT adapter at `adapter/`, merged standalone checkpoint
+at `checkpoint/`, processor files at `checkpoint/`, frozen config at root.
+All stored under `./out/moonshine_finetune/`.
 
 ### M2: Gemma 4 Correction Evaluation
 
@@ -657,7 +1011,7 @@ correction. Measure:
 
 ```bash
 python -m scripts.moonshine_eval \
-  --manifest ./out/dataset_v1/.../manifest.csv \
+  --manifest <PATH_TO_VAL_MANIFEST> \
   --model ./out/moonshine_finetune/checkpoint \
   --gemma-model ./models/gemma-4-e2b-Q4_K_M.gguf \
   --output ./out/moonshine_gemma_eval/
@@ -688,7 +1042,7 @@ ______________________________________________________________________
 
 | Metric                      | Target                                          | Milestone |
 | --------------------------- | ----------------------------------------------- | --------- |
-| Moonshine v2 OOB WER        | Measured and recorded                           | M0        |
+| Moonshine v2 OOB WER        | Measured and recorded (both small + medium)     | M0        |
 | Moonshine v2 fine-tuned WER | < 34.05% (beats fine-tuned Whisper)             | M1        |
 | Stage B WER vs Stage A      | Stage B ≤ Stage A                               | M2        |
 | Stage A latency             | < 300ms end-of-VAD to Chrome display            | M3        |
@@ -763,10 +1117,28 @@ ______________________________________________________________________
 
 ## Pre-Implementation Blockers
 
-| #   | Blocker                                                  | When     | Owner                               |
-| --- | -------------------------------------------------------- | -------- | ----------------------------------- |
-| 1   | mlx-moonshine v2 loads on M4 Pro                         | Day 0    | Verify with pip install + load test |
-| 2   | Gemma 4 GGUF builds on macOS 14 via llama.cpp            | Day 0    | cmake + Metal build                 |
-| 3   | Gemma 4 p95 latency \<800ms on M4 Pro (E2B or 26B MoE)   | Day 0    | Benchmark before M3                 |
-| 4   | Moonshine v2 fine-tuning via mlx-tune (LoRA layer names) | M1 start | Verify target layer names           |
-| 5   | Val set manifest compatible with moonshine_eval          | M0 start | Check column names in existing CSVs |
+| #   | Blocker                                                           | When     | Owner                                             |
+| --- | ----------------------------------------------------------------- | -------- | ------------------------------------------------- |
+| 1   | Moonshine v2 streaming loads via Transformers on MPS              | Day 0    | Verify with pip install + load test (both models) |
+| 2   | SileroVAD loads via silero-vad                                    | Day 0    | Verify with pip install + load test               |
+| 3   | Gemma 4 GGUF builds on macOS 14 via llama.cpp                     | Day 0    | cmake + Metal build                               |
+| 4   | Gemma 4 p95 latency \<800ms on M4 Pro (E2B or 26B MoE)            | Day 0    | Benchmark before M3                               |
+| 5   | PEFT/LoRA applies to MoonshineStreamingForConditionalGeneration   | M1 start | Verify target layer names via named_modules()     |
+| 6   | Val set manifest path provided and compatible with moonshine_eval | M0 start | User provides path; check column names            |
+
+**Dependency summary (pip install):**
+
+```text
+# Core (Day 0)
+transformers             # Latest — must support MoonshineStreamingForConditionalGeneration
+torch                    # PyTorch with MPS backend
+torchaudio               # Audio processing
+silero-vad               # Neural VAD (replaces webrtcvad for S2)
+peft                     # LoRA fine-tuning (M1)
+jiwer                    # WER computation (already in project)
+sounddevice              # Mic capture (M3 daemon)
+websockets               # WebSocket server (M3 daemon)
+
+# Existing (already in pyproject.toml)
+soundfile, librosa       # Audio I/O
+```

@@ -15,6 +15,12 @@ dependencies = [
     "torch>=2.0",
     "scipy>=1.10",
     "peft>=0.4.0",
+    "sherpa-onnx>=1.13.0",
+    "huggingface-hub>=0.20",
+    "aiohttp>=3.9",
+    "sounddevice>=0.4",
+    "silero-vad>=6.0",
+    "lhotse>=1.20",
 ]
 
 [project.optional-dependencies]
@@ -39,7 +45,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["scripts"]
-include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "feedback_finetune*", "fine_tuning*", "error_analysis*", "serving*"]
+include = ["baseline_eval*", "data_inventory*", "dataset_versioning*", "feedback_finetune*", "fine_tuning*", "error_analysis*", "serving*", "vox_daemon*", "zipformer_eval*", "zipformer_finetune*"]
 
 [tool.ruff]
 line-length = 100
@@ -75,6 +81,16 @@ namespace_packages = false
 module = ["datasets", "transformers", "transformers.*", "peft", "peft.*", "scipy", "scipy.*"]
 ignore_missing_imports = true
 follow_untyped_imports = false
+
+# S2 inference libs and pandas — no type stubs available
+[[tool.mypy.overrides]]
+module = ["sherpa_onnx", "soundfile", "librosa", "pandas"]
+ignore_missing_imports = true
+
+# Cross-package imports within scripts/ — mypy_path="scripts" causes false negatives
+[[tool.mypy.overrides]]
+module = ["scripts.*"]
+ignore_missing_imports = true
 
 [tool.mdformat]
 wrap = "keep"  # Preserve existing line wrapping

@@ -1,8 +1,17 @@
 # VOX Personalis Stage 2 — Moonshine v2 + Gemma 4 ASR Pipeline
 
-**Status:** ACTIVE\
+**Status:** SUPERSEDED (2026-05-08) by [S2-sherpa-zipformer-gemma-pipeline.md](S2-sherpa-zipformer-gemma-pipeline.md)\
 **Branch:** main\
 **Supersedes:** S1-M7 (Whisper fine-tuned baseline, 34.05% val WER)
+
+**Why superseded:** HuggingFace Transformers' `MoonshineStreamingForConditionalGeneration`
+does not expose true streaming inference. The official model card states "the
+current Transformers code path does not yet implement fully efficient streaming."
+The pipeline as written would have been VAD-segmented one-shot per utterance,
+not word-by-word during speech — which contradicted the core UX goal. The
+streaming-Zipformer path documented in [S2-sherpa-zipformer-gemma-pipeline.md](S2-sherpa-zipformer-gemma-pipeline.md)
+delivers true mid-utterance partials via sherpa-onnx, with a documented adapter
+fine-tune recipe (cloud GPU one-time) and significantly better LibriSpeech WER.
 
 ______________________________________________________________________
 
@@ -617,12 +626,30 @@ Input: {stage_a_text}
 Output:
 ```
 
-**Timeout handling:**
+**Timeout handling:** `subprocess.Popen.stdout.readline()` is blocking and does
+not accept a `timeout` kwarg. Use a threaded reader that drains stdout into a
+`queue.Queue`, then `get(timeout=...)` on the main thread. The Gemma worker is
+serialized (one prompt → one response → next prompt), so a single-slot queue
+suffices.
 
 ```python
+import queue, threading
+
+# At daemon startup, after spawning gemma_proc:
+gemma_q: queue.Queue[str] = queue.Queue()
+
+def _gemma_reader() -> None:
+    for line in iter(gemma_proc.stdout.readline, ""):
+        gemma_q.put(line)
+
+threading.Thread(target=_gemma_reader, daemon=True).start()
+
+# Per correction request (Gemma worker thread):
+gemma_proc.stdin.write(prompt + "\n")
+gemma_proc.stdin.flush()
 try:
-    result = gemma_proc.stdout.readline(timeout=1.5)
-except TimeoutError:
+    result = gemma_q.get(timeout=1.5)
+except queue.Empty:
     log.warning("Gemma timeout on uid=%d — emitting Stage A as Stage B", uid)
     result = stage_a_text   # fallback: Stage A is the committed result
 ```

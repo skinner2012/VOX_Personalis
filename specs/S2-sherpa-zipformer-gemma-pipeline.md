@@ -25,6 +25,7 @@ ______________________________________________________________________
 - [Component Specs](#component-specs)
   - [TextConsumer Protocol](#textconsumer-protocol)
   - [WebConsumer (aiohttp HTTP+WS)](#webconsumer-aiohttp-httpws)
+  - [Silero VAD Pre-filter](#silero-vad-pre-filter)
   - [Sherpa-ONNX Streaming Zipformer Integration](#sherpa-onnx-streaming-zipformer-integration)
   - [Gemma 4 GGUF Integration](#gemma-4-gguf-integration)
   - [Chrome Frontend](#chrome-frontend)
@@ -67,15 +68,15 @@ ______________________________________________________________________
 
 ## Why Streaming Zipformer (vs Moonshine, vs Whisper)
 
-| Property | Whisper (S1) | Moonshine v2 (HF) | **Streaming Zipformer (S2)** |
-| --- | --- | --- | --- |
-| Streaming UX | No (offline) | No (HF API is one-shot) | **Yes — partials every 320ms encoder chunk** |
-| LibriSpeech test-clean WER | ~5% (small) | 6.65% (medium) | **2.43%** (70M LibriSpeech+GigaSpeech, greedy, 320ms chunk) |
-| Model size | 244M / ~1GB (small) | 245M / 1.06GB (medium) | **70M / ~340MB** |
-| Fine-tuning path | LoRA via HF/PEFT (proven on S1) | LoRA via HF/PEFT (proven for non-streaming) | **Full fine-tune of streaming Zipformer via icefall (cloud GPU required)** |
-| Apple Silicon inference | PyTorch MPS | PyTorch MPS | **sherpa-onnx (CPU or CoreML), pip wheel** |
-| First-token latency | N/A (offline) | After VAD pause + encoder pass (~600ms) | **~320ms chunk granularity, mid-utterance** |
-| License (model + code) | MIT (model), MIT (code) | Apache-2.0 (small/medium) | **Apache-2.0 (model + sherpa-onnx + icefall)** |
+| Property                   | Whisper (S1)                    | Moonshine v2 (HF)                           | **Streaming Zipformer (S2)**                                               |
+| -------------------------- | ------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
+| Streaming UX               | No (offline)                    | No (HF API is one-shot)                     | **Yes — partials every 320ms encoder chunk**                               |
+| LibriSpeech test-clean WER | ~5% (small)                     | 6.65% (medium)                              | **2.43%** (70M LibriSpeech+GigaSpeech, greedy, 320ms chunk)                |
+| Model size                 | 244M / ~1GB (small)             | 245M / 1.06GB (medium)                      | **70M / ~340MB**                                                           |
+| Fine-tuning path           | LoRA via HF/PEFT (proven on S1) | LoRA via HF/PEFT (proven for non-streaming) | **Full fine-tune of streaming Zipformer via icefall (cloud GPU required)** |
+| Apple Silicon inference    | PyTorch MPS                     | PyTorch MPS                                 | **sherpa-onnx (CPU or CoreML), pip wheel**                                 |
+| First-token latency        | N/A (offline)                   | After VAD pause + encoder pass (~600ms)     | **~320ms chunk granularity, mid-utterance**                                |
+| License (model + code)     | MIT (model), MIT (code)         | Apache-2.0 (small/medium)                   | **Apache-2.0 (model + sherpa-onnx + icefall)**                             |
 
 The streaming property is decisive: the user wanted word-by-word display *while
 speaking*, not after a VAD-detected pause. Only sherpa-onnx + streaming
@@ -140,11 +141,11 @@ ______________________________________________________________________
 
 ## Hardware
 
-| Machine | Specs | Role |
-| --- | --- | --- |
-| Mac mini | M4 Pro, 64GB RAM | Local development, evaluation (M0, M2, M3), Gemma 4 inference |
-| MBP M4 Pro | M4 Pro, 48GB RAM | Live demo (M3), daily driver |
-| **Lambda Labs A10** | 1× A10 24GB, 226 GiB RAM, 1.3 TiB SSD, $1.29/hr | **One-time fine-tuning (M1) — rented for ~6–8h, ~$10–20** |
+| Machine             | Specs                                           | Role                                                          |
+| ------------------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| Mac mini            | M4 Pro, 64GB RAM                                | Local development, evaluation (M0, M2, M3), Gemma 4 inference |
+| MBP M4 Pro          | M4 Pro, 48GB RAM                                | Live demo (M3), daily driver                                  |
+| **Lambda Labs A10** | 1× A10 24GB, 226 GiB RAM, 1.3 TiB SSD, $1.29/hr | **One-time fine-tuning (M1) — rented for ~6–8h, ~$10–20**     |
 
 **Inference framework (local):** sherpa-onnx (ONNX Runtime + optional CoreML)
 via the `sherpa-onnx` PyPI wheel. arm64 wheels exist for Python 3.11–3.14. CPU
@@ -177,20 +178,20 @@ ______________________________________________________________________
 
 ## What Is Out of Scope (Phase 1)
 
-| Item | Deferred to |
-| --- | --- |
-| Android client | Phase 3 |
-| FastAPI serving layer | Phase 2 (exists at scripts/serving/, untouched) |
-| AX injection into Live Captions | Phase C (post-demo) |
-| IME (InputMethodKit) path | Phase C (if AX fails) |
-| Stage B suppression (user-edit detection) | Phase 2 |
-| Visual Stage A/B differentiation in AX | AX limitation — plain text only |
-| Automated test suite | Phase 2 |
-| Menu bar status app | Explicitly skipped |
-| Auto-submit after silence | Explicitly skipped |
-| Gemma rollback hotkey | Explicitly skipped |
-| Multi-language support | Phase 3 (en-only for now) |
-| CoreML on-device fine-tuning | Researchy — out of scope until icefall has Metal kernels |
+| Item                                      | Deferred to                                              |
+| ----------------------------------------- | -------------------------------------------------------- |
+| Android client                            | Phase 3                                                  |
+| FastAPI serving layer                     | Phase 2 (exists at scripts/serving/, untouched)          |
+| AX injection into Live Captions           | Phase C (post-demo)                                      |
+| IME (InputMethodKit) path                 | Phase C (if AX fails)                                    |
+| Stage B suppression (user-edit detection) | Phase 2                                                  |
+| Visual Stage A/B differentiation in AX    | AX limitation — plain text only                          |
+| Automated test suite                      | Phase 2                                                  |
+| Menu bar status app                       | Explicitly skipped                                       |
+| Auto-submit after silence                 | Explicitly skipped                                       |
+| Gemma rollback hotkey                     | Explicitly skipped                                       |
+| Multi-language support                    | Phase 3 (en-only for now)                                |
+| CoreML on-device fine-tuning              | Researchy — out of scope until icefall has Metal kernels |
 
 ______________________________________________________________________
 
@@ -221,13 +222,13 @@ All prior evaluation used the same held-out val set and `create_normalizer(versi
 normalization. New evals must use identical normalization for apples-to-apples
 comparison.
 
-| Model | WER (val set, S1 frozen splits) | Notes |
-| --- | --- | --- |
-| Whisper small.en (out-of-box) | ~55% (estimated) | Pre-fine-tuning baseline |
-| Whisper small.en (fine-tuned, S1-M7) | **34.05%** | Current best — the bar to clear |
-| Stock streaming Zipformer (LibriSpeech+GigaSpeech, 70M) | TBD — M0 | icefall RESULTS: 2.43% / 6.0% on LibriSpeech test-clean / test-other (greedy, 320ms chunk) |
-| Streaming Zipformer (fine-tuned, full) | Target: \<34.05% | M1 gate |
-| Streaming Zipformer + Gemma 4 correction | Target: ≤ fine-tuned alone | M2 gate |
+| Model                                                   | WER (val set, S1 frozen splits) | Notes                                                                                      |
+| ------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
+| Whisper small.en (out-of-box)                           | ~55% (estimated)                | Pre-fine-tuning baseline                                                                   |
+| Whisper small.en (fine-tuned, S1-M7)                    | **34.05%**                      | Current best — the bar to clear                                                            |
+| Stock streaming Zipformer (LibriSpeech+GigaSpeech, 70M) | TBD — M0                        | icefall RESULTS: 2.43% / 6.0% on LibriSpeech test-clean / test-other (greedy, 320ms chunk) |
+| Streaming Zipformer (fine-tuned, full)                  | Target: \<34.05%                | M1 gate                                                                                    |
+| Streaming Zipformer + Gemma 4 correction                | Target: ≤ fine-tuned alone      | M2 gate                                                                                    |
 
 **Model selection (decided 2026-05-08):** Inference uses
 `csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-21` (70M params, ~340 MB
@@ -409,6 +410,18 @@ huggingface-cli download unsloth/gemma-4-26B-A4B-it-GGUF \
 # 5. Verify aiohttp installs (HTTP+WebSocket server for daemon)
 pip install aiohttp
 python -c "import aiohttp; from aiohttp import web; print('aiohttp OK')"
+
+# 6. Verify silero-vad installs and runs on a 100ms test chunk
+pip install silero-vad
+python -c "
+import torch
+from silero_vad import load_silero_vad
+model = load_silero_vad()
+# 1600 samples = 100ms at 16kHz
+chunk = torch.zeros(1600)
+prob = model(chunk, 16000).item()
+print(f'silero-vad OK, silence prob={prob:.3f} (expect near 0)')
+"
 ```
 
 ### Cloud (Lambda Labs A10) — only when ready to start M1
@@ -475,6 +488,7 @@ sherpa-onnx>=1.13.0      # streaming ASR runtime (local inference)
 huggingface-hub>=0.20    # model downloads (likely already transitive)
 aiohttp>=3.9             # HTTP+WebSocket server for daemon
 sounddevice>=0.4         # mic capture for daemon
+silero-vad>=5.0          # neural VAD pre-filter (gates audio before ASR)
 lhotse>=1.20             # manifest format conversion (M1 prep, local-only)
 
 # Cloud-only deps (do NOT add to local pyproject.toml — installed on A10):
@@ -517,6 +531,11 @@ ______________________________________________________________________
 │                                                                 │
 │  Microphone capture (sounddevice, 16kHz, float32 mono)          │
 │       │ 100ms audio chunks                                      │
+│       ▼                                                         │
+│  Silero VAD pre-filter (silero-vad, neural)                     │
+│  threshold=0.5, hangover=12 chunks (1.2s post-speech tail)      │
+│  Drops silence chunks during idle; forwards speech + tail       │
+│       │ filtered chunks (speech + post-speech silence)          │
 │       ▼                                                         │
 │  sherpa-onnx OnlineRecognizer (streaming Zipformer)             │
 │  provider="cpu" or "coreml" (benchmark Day 0)                   │
@@ -632,8 +651,8 @@ async def broadcast(app: web.Application, msg: dict) -> None:
 **Startup sequence:**
 
 1. `aiohttp.web.AppRunner` on `localhost:8765` (HTTP + WS on same port)
-2. `subprocess.run(['open', 'http://localhost:8765'])` — opens in default browser
-3. Enter ASR loop
+1. `subprocess.run(['open', 'http://localhost:8765'])` — opens in default browser
+1. Enter ASR loop
 
 **Client-side race guard (mirrors Layer 2 D3 + D6 decisions):**
 
@@ -652,6 +671,82 @@ ws.onmessage = (event) => {
   }
 };
 ```
+
+______________________________________________________________________
+
+### Silero VAD Pre-filter
+
+File: `scripts/vox_daemon/silero_vad.py`
+
+**Role: pre-filter, not segmenter.** Streaming Zipformer is always-on — it
+transcribes whatever audio it receives. A neural VAD in front of the recognizer
+prevents two failure modes:
+
+1. **Silence hallucinations.** Without a pre-filter, sherpa-onnx runs the
+   encoder on background noise (HVAC, keyboard, room tone) and can emit
+   spurious tokens. VAD gates these out before they reach the recognizer.
+1. **Compute waste during idle.** Skipping silence chunks frees the encoder
+   for actual speech.
+
+VAD does NOT replace sherpa-onnx's endpoint detection. Sherpa-onnx still
+decides "this utterance is complete" via its rule-based logic on its own
+input stream. VAD just controls *what audio* sherpa-onnx sees.
+
+**Why Silero (vs webrtcvad).** Silero is a neural VAD trained on diverse
+speech. For Deaf/atypical speech with non-standard prosody, Silero is more
+robust than rule-based webrtcvad. The S1 codebase already uses webrtcvad
+in `scripts/serving/vad.py` (untouched, Phase 2 path); S2 uses Silero.
+
+```python
+from silero_vad import load_silero_vad
+import torch
+
+class SileroVADPreFilter:
+    SAMPLE_RATE = 16000
+    CHUNK_SAMPLES = 1600  # 100ms at 16kHz
+
+    def __init__(self, *, threshold: float = 0.5, hangover_chunks: int = 12):
+        """
+        threshold: speech probability cutoff (0.0–1.0). Higher = stricter.
+        hangover_chunks: how many post-speech chunks to keep forwarding before
+                        dropping back to silence-gated mode. 12 chunks = 1.2s,
+                        which matches sherpa-onnx's rule1_min_trailing_silence.
+                        This lets sherpa-onnx see enough trailing silence to
+                        fire its own endpoint detection.
+        """
+        self.model = load_silero_vad()
+        self.threshold = threshold
+        self.hangover_chunks = hangover_chunks
+        self._silence_count = hangover_chunks   # start in idle state
+
+    def is_speech(self, chunk_float32) -> bool:
+        """True if chunk contains speech."""
+        chunk_t = torch.from_numpy(chunk_float32)
+        prob = self.model(chunk_t, self.SAMPLE_RATE).item()
+        return prob > self.threshold
+
+    def should_forward(self, chunk_float32) -> bool:
+        """
+        Returns True if this chunk should be fed to the ASR recognizer.
+        Behavior:
+          - Speech detected → forward, reset silence counter.
+          - Silence + within hangover window → forward (let ASR see trailing
+            silence for its own endpoint detection).
+          - Silence + past hangover → drop (idle state).
+        """
+        if self.is_speech(chunk_float32):
+            self._silence_count = 0
+            return True
+        self._silence_count += 1
+        return self._silence_count <= self.hangover_chunks
+```
+
+**Why hangover = 12 chunks (1.2s).** This matches
+`rule1_min_trailing_silence=1.2` so sherpa-onnx receives enough trailing
+silence in its input to fire endpoint detection naturally. Shorter hangover
+risks cutting off the endpoint signal; longer hangover wastes compute.
+
+**Configurable via CLI:** `--vad-threshold` and `--vad-hangover-ms` flags.
 
 ______________________________________________________________________
 
@@ -691,11 +786,14 @@ def make_recognizer(model_dir: str, provider: str = "cpu") -> sherpa_onnx.Online
     )
 
 # Daemon main loop (simplified):
-def asr_loop(recognizer, mic_chunks, on_partial, on_final):
+def asr_loop(recognizer, vad, mic_chunks, on_partial, on_final):
     stream = recognizer.create_stream()
     uid = 0
     last_text = ""
     for chunk_float32 in mic_chunks:                       # 100ms each
+        # Pre-filter: drop pure-silence chunks during idle
+        if not vad.should_forward(chunk_float32):
+            continue
         stream.accept_waveform(16000, chunk_float32)
         while recognizer.is_ready(stream):
             recognizer.decode_stream(stream)
@@ -851,6 +949,8 @@ python -m scripts.vox_daemon \
   --provider cpu \
   --decode-chunk-len 32 \
   --rule1-min-trailing-silence 1.2 \
+  --vad-threshold 0.5 \
+  --vad-hangover-ms 1200 \
   --port 8765 \
   --debug            # prints Stage A and Stage B updates to stdout
 ```
@@ -866,10 +966,11 @@ defaults to `web` and is hardcoded.
 **Startup sequence:**
 
 1. Load Zipformer recognizer via sherpa-onnx (fails fast if model files missing)
-2. Spawn Gemma subprocess, verify it responds to a test prompt
-3. Start aiohttp HTTP+WS server on `--port`
-4. `subprocess.run(['open', 'http://localhost:{port}'])` (macOS)
-5. Start mic capture loop (sounddevice → recognizer.accept_waveform)
+1. Load Silero VAD pre-filter
+1. Spawn Gemma subprocess, verify it responds to a test prompt
+1. Start aiohttp HTTP+WS server on `--port`
+1. `subprocess.run(['open', 'http://localhost:{port}'])` (macOS)
+1. Start mic capture loop (sounddevice → VAD pre-filter → recognizer.accept_waveform)
 
 ______________________________________________________________________
 
@@ -888,6 +989,7 @@ scripts/
     __main__.py
     cli.py
     consumer.py          # TextConsumer Protocol + WebConsumer (aiohttp)
+    silero_vad.py        # Silero VAD pre-filter (gates audio before ASR)
     zipformer_asr.py     # sherpa-onnx OnlineRecognizer wrapper
     gemma.py             # Gemma 4 GGUF subprocess + threaded reader
     static/
@@ -919,10 +1021,10 @@ ______________________________________________________________________
 **S1 frozen splits** (`results/M1_dataset_v1/dataset_v1_summary.json`):
 
 | Split | Clips | Duration |
-| --- | --- | --- |
-| Train | 2,897 | 3.74h |
-| Val | 361 | 0.46h |
-| Test | 365 | 0.48h |
+| ----- | ----- | -------- |
+| Train | 2,897 | 3.74h    |
+| Val   | 361   | 0.46h    |
+| Test  | 365   | 0.48h    |
 
 **S1-M7 train set** (`results/M7_feedback_finetune/merged_manifest.csv`):
 2,897 train + 108 feedback corrections = 3,005 rows / 4.02h. **This is the
@@ -1136,17 +1238,17 @@ detailed steps. This subsection captures the gate and config.
 
 **Hyperparameters (icefall vanilla zipformer/finetune.py + --causal):**
 
-| Parameter | Value | Source |
-| --- | --- | --- |
-| `--causal` | 1 | Required for streaming export |
-| `--chunk-size` | 32 | 320ms encoder chunk (32 × 10ms hop) |
-| `--left-context-frames` | 128 | 1.28s left context per chunk |
-| `--base-lr` | 0.0045 | icefall recipe doc (1/10 of from-scratch) |
-| `--num-epochs` | 20 | icefall recipe default |
-| `--max-duration` | 1000 (frames) | A10 24GB memory headroom |
-| `--use-fp16` | 1 | A10 supports FP16 well |
-| `--do-finetune` | 1 | Enables fine-tune mode |
-| Trainable params | All (~70M) | Full fine-tune; no PEFT in icefall streaming path |
+| Parameter               | Value         | Source                                            |
+| ----------------------- | ------------- | ------------------------------------------------- |
+| `--causal`              | 1             | Required for streaming export                     |
+| `--chunk-size`          | 32            | 320ms encoder chunk (32 × 10ms hop)               |
+| `--left-context-frames` | 128           | 1.28s left context per chunk                      |
+| `--base-lr`             | 0.0045        | icefall recipe doc (1/10 of from-scratch)         |
+| `--num-epochs`          | 20            | icefall recipe default                            |
+| `--max-duration`        | 1000 (frames) | A10 24GB memory headroom                          |
+| `--use-fp16`            | 1             | A10 supports FP16 well                            |
+| `--do-finetune`         | 1             | Enables fine-tune mode                            |
+| Trainable params        | All (~70M)    | Full fine-tune; no PEFT in icefall streaming path |
 
 **Gate:** val WER < 34.05% (beats fine-tuned Whisper baseline).
 
@@ -1159,10 +1261,10 @@ small end of where full Zipformer fine-tune has been demonstrated.
 
 1. Check val loss curve — if still improving, extend to 30 epochs with
    `--start-epoch 21 --num-epochs 30`.
-2. Try `--base-lr 0.0010` (lower) — may help if val loss is unstable.
-3. Try `--init-modules encoder` to selectively load only encoder weights from
+1. Try `--base-lr 0.0010` (lower) — may help if val loss is unstable.
+1. Try `--init-modules encoder` to selectively load only encoder weights from
    the base ckpt, leaving decoder + joiner randomly initialized (or vice versa).
-4. If still failing: fall back to S1 Whisper-LoRA pipeline (chunky-but-adapted),
+1. If still failing: fall back to S1 Whisper-LoRA pipeline (chunky-but-adapted),
    reframe Phase B as "show streaming UX with stock Zipformer + best-effort
    Gemma correction."
 
@@ -1179,8 +1281,8 @@ Run fine-tuned Zipformer on val set. For each transcription, run Gemma
 correction. Measure:
 
 1. WER of raw Zipformer output (Stage A baseline)
-2. WER of Gemma-corrected output (Stage B)
-3. False correction rate (cases where Gemma made it worse)
+1. WER of Gemma-corrected output (Stage B)
+1. False correction rate (cases where Gemma made it worse)
 
 ```bash
 python -m scripts.zipformer_eval \
@@ -1200,32 +1302,32 @@ ______________________________________________________________________
 
 ## Error / Rescue Registry (Layer 1)
 
-| Error | Rescue |
-| --- | --- |
-| sherpa-onnx exception (any) | Skip chunk, log stderr, continue |
-| ONNX model file missing at startup | Fail fast with clear error |
-| Empty Stage A partial | Suppress on_partial call (no Stage A update) |
-| Gemma timeout (>1500ms) | Emit Stage A text as Stage B |
-| Gemma OOM / crash | Auto-restart up to 3 times; Stage A only after limit |
-| Gemma malformed output (empty/garbled) | Emit Stage A as Stage B fallback |
-| WebSocket client disconnected | Continue broadcasting; reconnect on next page load |
-| Chrome not installed | Log warning; user opens <http://localhost:8765> manually |
-| Port 8765 in use | CLI error on startup: "Port 8765 in use — use --port N" |
-| CoreML provider slower than CPU | Fall back to provider="cpu" (Day 0 benchmark guides default) |
+| Error                                  | Rescue                                                       |
+| -------------------------------------- | ------------------------------------------------------------ |
+| sherpa-onnx exception (any)            | Skip chunk, log stderr, continue                             |
+| ONNX model file missing at startup     | Fail fast with clear error                                   |
+| Empty Stage A partial                  | Suppress on_partial call (no Stage A update)                 |
+| Gemma timeout (>1500ms)                | Emit Stage A text as Stage B                                 |
+| Gemma OOM / crash                      | Auto-restart up to 3 times; Stage A only after limit         |
+| Gemma malformed output (empty/garbled) | Emit Stage A as Stage B fallback                             |
+| WebSocket client disconnected          | Continue broadcasting; reconnect on next page load           |
+| Chrome not installed                   | Log warning; user opens <http://localhost:8765> manually     |
+| Port 8765 in use                       | CLI error on startup: "Port 8765 in use — use --port N"      |
+| CoreML provider slower than CPU        | Fall back to provider="cpu" (Day 0 benchmark guides default) |
 
 ______________________________________________________________________
 
 ## Success Criteria (5-Day Demo)
 
-| Metric | Target | Milestone |
-| --- | --- | --- |
-| Stock Zipformer val WER | Measured and recorded | M0 |
-| Fine-tuned Zipformer val WER | < 34.05% (beats fine-tuned Whisper) | M1 |
-| Stage B WER vs Stage A | Stage B ≤ Stage A | M2 |
-| Stage A first-token latency | \< 600ms from speech onset (320ms chunk + lookahead + scheduling) | M3 |
-| Stage A update cadence | Partial transcript updates ~3× per second (every 320ms chunk) | M3 |
-| Stage B latency | Stage B replaces Stage A within 800ms of endpoint | M3 |
-| Demo stability | Runs for 10 min without crash | M3 |
+| Metric                       | Target                                                           | Milestone |
+| ---------------------------- | ---------------------------------------------------------------- | --------- |
+| Stock Zipformer val WER      | Measured and recorded                                            | M0        |
+| Fine-tuned Zipformer val WER | < 34.05% (beats fine-tuned Whisper)                              | M1        |
+| Stage B WER vs Stage A       | Stage B ≤ Stage A                                                | M2        |
+| Stage A first-token latency  | < 600ms from speech onset (320ms chunk + lookahead + scheduling) | M3        |
+| Stage A update cadence       | Partial transcript updates ~3× per second (every 320ms chunk)    | M3        |
+| Stage B latency              | Stage B replaces Stage A within 800ms of endpoint                | M3        |
+| Demo stability               | Runs for 10 min without crash                                    | M3        |
 
 ______________________________________________________________________
 
@@ -1236,15 +1338,15 @@ Implementation begins after M3 demo is validated.
 
 ### Decisions Made (D1–D7)
 
-| # | Decision | Choice |
-| --- | --- | --- |
-| D1 | IPC wire format | Newline-delimited JSON: `{"type":"stage_a","text":"...","uid":42}\n` |
-| D2 | Daemon lifecycle | Python daemon spawns Swift injector as subprocess (owns lifecycle) |
-| D3 | Stage B race (Return) | Swift reads field before Stage B write — discard if field is empty |
-| D4 | on_clear() Phase 1 | No-op — Stage A of next utterance overwrites; defined in Protocol for Phase 2 |
-| D5 | Tests | Deferred to Phase 2 (MVP 1 POC is the pass/fail gate) |
-| D6 | Utterance ID | `uid` in every IPC message; Swift discards Stage B if uid != last Stage A uid |
-| D7 | Injector crash | Auto-restart up to 3 times; after limit, fall to ASR-only mode |
+| #   | Decision              | Choice                                                                        |
+| --- | --------------------- | ----------------------------------------------------------------------------- |
+| D1  | IPC wire format       | Newline-delimited JSON: `{"type":"stage_a","text":"...","uid":42}\n`          |
+| D2  | Daemon lifecycle      | Python daemon spawns Swift injector as subprocess (owns lifecycle)            |
+| D3  | Stage B race (Return) | Swift reads field before Stage B write — discard if field is empty            |
+| D4  | on_clear() Phase 1    | No-op — Stage A of next utterance overwrites; defined in Protocol for Phase 2 |
+| D5  | Tests                 | Deferred to Phase 2 (MVP 1 POC is the pass/fail gate)                         |
+| D6  | Utterance ID          | `uid` in every IPC message; Swift discards Stage B if uid != last Stage A uid |
+| D7  | Injector crash        | Auto-restart up to 3 times; after limit, fall to ASR-only mode                |
 
 ### IPC Wire Format
 
@@ -1288,17 +1390,18 @@ ______________________________________________________________________
 
 ## Pre-Implementation Blockers
 
-| # | Blocker | When | Owner |
-| --- | --- | --- | --- |
-| 1 | sherpa-onnx loads + runs streaming Zipformer on M4 Pro arm64 | Day 0 | Verify with pip install + smoke test |
-| 2 | Stock Zipformer 70M ONNX downloads cleanly from HF | Day 0 | huggingface-cli download |
-| 3 | aiohttp HTTP+WS server on port 8765 | Day 0 | pip install + minimal test |
-| 4 | Gemma 4 GGUF builds on macOS 14 via llama.cpp + Metal | Day 0 | cmake + Metal build |
-| 5 | Gemma 4 p95 latency \<800ms on M4 Pro (26B-A4B or E2B) | Day 0 | Benchmark before M3 |
-| 6 | PyTorch source checkpoint A or B chosen via smoke-test (state dict loads cleanly into vanilla zipformer/finetune.py) | Day 0 | See Day 0 step 9 |
-| 7 | Lambda Labs A10 access + payment method on file | M1 start | Sign up; ~$5 credit for first run |
-| 8 | k2 + icefall install on Lambda Labs A10 (CUDA 12.1, PyTorch 2.1) | M1 start | Follow icefall install doc |
-| 9 | lhotse manifest conversion script handles S1 CSV format | M1 prep | Implement + test on local |
+| #   | Blocker                                                                                                              | When     | Owner                                |
+| --- | -------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------ |
+| 1   | sherpa-onnx loads + runs streaming Zipformer on M4 Pro arm64                                                         | Day 0    | Verify with pip install + smoke test |
+| 2   | Stock Zipformer 70M ONNX downloads cleanly from HF                                                                   | Day 0    | huggingface-cli download             |
+| 3   | aiohttp HTTP+WS server on port 8765                                                                                  | Day 0    | pip install + minimal test           |
+| 3b  | silero-vad loads + runs on 100ms chunks at 16kHz                                                                     | Day 0    | pip install + smoke test             |
+| 4   | Gemma 4 GGUF builds on macOS 14 via llama.cpp + Metal                                                                | Day 0    | cmake + Metal build                  |
+| 5   | Gemma 4 p95 latency \<800ms on M4 Pro (26B-A4B or E2B)                                                               | Day 0    | Benchmark before M3                  |
+| 6   | PyTorch source checkpoint A or B chosen via smoke-test (state dict loads cleanly into vanilla zipformer/finetune.py) | Day 0    | See Day 0 step 9                     |
+| 7   | Lambda Labs A10 access + payment method on file                                                                      | M1 start | Sign up; ~$5 credit for first run    |
+| 8   | k2 + icefall install on Lambda Labs A10 (CUDA 12.1, PyTorch 2.1)                                                     | M1 start | Follow icefall install doc           |
+| 9   | lhotse manifest conversion script handles S1 CSV format                                                              | M1 prep  | Implement + test on local            |
 
 **Dependency summary:**
 
@@ -1308,6 +1411,7 @@ sherpa-onnx>=1.13.0      # streaming ASR runtime
 huggingface-hub>=0.20    # model downloads
 aiohttp>=3.9             # HTTP+WebSocket server
 sounddevice>=0.4         # mic capture
+silero-vad>=5.0          # neural VAD pre-filter (gates audio before ASR)
 lhotse>=1.20             # manifest conversion (M1 prep only)
 
 # Already in pyproject.toml:
@@ -1330,20 +1434,37 @@ ______________________________________________________________________
    overfitting risk is real. Mitigation: M0-first (stock baseline) gives a
    clean comparison point; if stock WER is already \<34.05% on Deaf accent,
    M1 can be skipped entirely.
-2. **Base checkpoint state-dict compatibility.** Candidate A
+
+1. **Base checkpoint state-dict compatibility.** Candidate A
    (`marcoyang/...-2023-04-04`) is the 70M LibriSpeech+GigaSpeech model that
    matches inference, but was trained under the older
    `pruned_transducer_stateless7_streaming_multi` recipe. The new
    `zipformer/finetune.py` may or may not load it cleanly. Day 0 smoke-test
    resolves; fall back to Candidate B (66M, recipe-matched) if A fails.
-3. **CoreML vs CPU on M4 Pro — known performance variance.** sherpa-onnx
+
+1. **CoreML vs CPU on M4 Pro — known performance variance.** sherpa-onnx
    issue #2910 reports CoreML slower than CPU on some M2 configs. M4 Pro is
    newer; benchmark required.
-4. **Latency target of \<500ms first-token-on-screen is tight.** Budget:
+
+1. **Latency target of \<500ms first-token-on-screen is tight.** Budget:
    320ms encoder chunk + right-context lookahead + sherpa-onnx scheduling +
    WS hop. Measured first-output latency in production reports is typically
    400–600ms on CPU. Worth measuring early in M3; relax target to 600ms if
    the streaming model needs a longer right-padding window.
-5. **Endpoint detection tuning.** The default `rule1_min_trailing_silence=1.2s`
-   may be too eager or too patient for the user's natural pause patterns.
-   Phase 1 ships with the default; tune in M3 stability testing.
+
+1. **Pause/silence tuning across VAD and endpoint detection.** Two parameters
+   work together and must be tuned together for the user's natural pause
+   patterns:
+
+   - **Silero VAD `threshold`** (default `0.5`) gates whether audio reaches
+     the recognizer. Too high → misses soft speech onsets and clips sustained
+     quiet vocalizations. Too low → forwards background noise to the recognizer.
+   - **sherpa-onnx `rule1_min_trailing_silence`** (default `1.2s`) decides
+     when an utterance ends and Gemma correction fires. Too low → premature
+     endpoints on natural mid-sentence pauses. Too high → laggy Stage B.
+
+   The VAD hangover window (`1.2s`) deliberately matches
+   `rule1_min_trailing_silence` so the recognizer sees enough trailing silence
+   to fire its own endpoint naturally. If you change one, change the other.
+   Phase 1 ships with defaults; M3 stability testing tunes both against the
+   user's actual speech.

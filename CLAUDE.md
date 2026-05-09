@@ -162,3 +162,11 @@ type([SX-MY/]component): subject
 
 Examples: `feat(S1-M7/serving): add feedback endpoint`, `fix(api): handle null in user lookup`,
 `chore(deps): add webrtcvad`. Imperative mood, under ~72 chars.
+
+## Commit Practice
+
+- **One file or a small set of closely related files per commit.** Never batch unrelated files.
+- **Dependency order.** If file B depends on file A, commit A first.
+- **No body or description.** Subject line only (plus the required `Co-Authored-By` trailer).
+- **Always propose before committing.** For each planned commit, state the exact file(s) and
+  the commit title, then wait for approval before staging and committing.

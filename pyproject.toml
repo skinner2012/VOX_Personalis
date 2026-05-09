@@ -82,9 +82,9 @@ module = ["datasets", "transformers", "transformers.*", "peft", "peft.*", "scipy
 ignore_missing_imports = true
 follow_untyped_imports = false
 
-# S2 inference libs and pandas — no type stubs available
+# S2 inference and data libs — no type stubs available
 [[tool.mypy.overrides]]
-module = ["sherpa_onnx", "soundfile", "librosa", "pandas"]
+module = ["sherpa_onnx", "soundfile", "librosa", "pandas", "lhotse"]
 ignore_missing_imports = true
 
 # Cross-package imports within scripts/ — mypy_path="scripts" causes false negatives

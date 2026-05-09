@@ -1,0 +1,362 @@
+file_name,split,reference_raw,hypothesis_raw,reference,hypothesis,wer,latency_ms
+euphonia_002f4f2d5ad6ecd94202d4ef92719c02.wav,val,can you play some music,TOO PRETTY,can you play some music,too pretty,1.0,94.1
+euphonia_0066239dd276e14b97e7b90125a9f987.wav,val,what's the news?,FIFTEEN DIDN'T,what is the news,fifteen did not,1.0,85.2
+euphonia_00af0209a2c2ab4f8f93537fa9c08cb9.wav,val,What's the forecast?,THIRD TIME THE PURE CAME WITH,what is the forecast,third time the pure came with,1.25,120.9
+euphonia_01c3ad8c08e6196c0d9adf5c0478b59c.wav,val,When or where do you want to be alerted?,FILLED WE WORKED TO BE WANTED,when or where do you want to be alerted,filled we worked to be wanted,0.7778,192.9
+euphonia_02fad029c17ebc3442e6a86b7b558d19.wav,val,Just tell them what happened.,THEN TO TEA IN THE ME FUR,just tell them what happened,then to tea in the me fur,1.4,102.7
+euphonia_03b107abcf78c58732ab92719e5309d6.wav,val,The song is well worth several listens.,THE SIR YOU SEE,the song is well worth several listens,the sir you see,0.8571,187.0
+euphonia_04dd2be71e4fac46a3a02a69d24ee457.wav,val,Junior will not play.,SINCE,junior will not play,since,1.0,102.9
+euphonia_069c54466b8e7cca6e84873800ca8a75.wav,val,I know I do too.,AND,i know i do too,and,1.0,84.4
+euphonia_07061b05a5647daddc63aed8a19b96e4.wav,val,His paw often get stuck with burrs.,WHO BIT HIS DARK,his paw often get stuck with burrs,who bit his dark,1.0,185.2
+euphonia_084a5a4e93984fdc2e1d6cee9abe48bb.wav,val,hide keyboard,HER C BU,hide keyboard,her c bu,1.5,74.2
+euphonia_092ffbe7d28a19be18e26cb37ea97f33.wav,val,Move away a chair and get a little tighter.,TO BE HERE IT WOULD,move away a chair and get a little tighter,to be here it would,1.0,186.0
+euphonia_094e450c89459c094111fd857828bfde.wav,val,Where?,,where,,1.0,56.0
+euphonia_09bd74d35cff0f58dc8df1af7fc361a0.wav,val,restaurants nearby,WE INTERIOR TO FENDER,restaurants nearby,we interior to fender,2.0,112.1
+euphonia_0ae19412f30539082dcf8d7f8efb870d.wav,val,The board disapproved of William Kendall.,DU BOO DOO PROOF LIMITED,the board disapproved of william kendall,du boo doo proof limited,1.0,221.4
+euphonia_0b849e411a8b40117055fdab22104194.wav,val,Turn up thermostat to 76°.,TURN UP THE DOOM THEOPIT GENTLEMEN TO,turn up thermostat to 76°,turn up the doom theopit gentlemen to,1.0,210.3
+euphonia_0bb985ac8c843f33ba7df0483553b0b4.wav,val,I don't have a husband.,AH DON'T HURT BIT,i do not have a husband,ah do not hurt bit,0.6667,119.8
+euphonia_0bffdc972e05b86fee4de4b9ccb234c3.wav,val,Amber India restaurant is closed on Friday.,UP REALITUDED TO RECRUDE AND,amber india restaurant is closed on friday,up realituded to recrude and,1.0,210.9
+euphonia_0ca21e9e932d81d4e7476638121714c8.wav,val,What did you do on the weekend?,FIRST AND THAT THE VICTORY OUT OF IT,what did you do on the weekend,first and that the victory out of it,1.1429,119.7
+euphonia_0d8e5cdc0bd82f047529b06d42b89095.wav,val,Isn't that the right thing to do?,IT KNIT TO DO THAT THEN I TURN,is not that the right thing to do,it knit to do that then i turn,1.0,147.0
+euphonia_0dc6f14e699f8f17df39b2dcbc176def.wav,val,set thermostat to 74 degrees,FIT THE,set thermostat to 74 degrees,fit the,1.0,155.5
+euphonia_0dfeb0c70baabe680ad5b6f9a7d44566.wav,val,Hannah lost all hope.,HOME NOW,hannah lost all hope,home now,1.0,117.9
+euphonia_0e1cb51a385d5c791e36256863edd1d6.wav,val,Okay clear.,A CLEAR,okay clear,a clear,0.5,72.7
+euphonia_0ecbc0092c3026246c0a6cc8a86fe054.wav,val,Good night,ABOUT THE,good night,about the,1.0,64.6
+euphonia_0fd814ca779811d6680d432819a2332d.wav,val,What kind is it?,FOR THE COUNT,what kind is it,for the count,1.0,82.5
+euphonia_10124557b1758e01e8aaf355f46b4bd4.wav,val,Here is Dallas Museum of Art.,GOOD DAUGHTER MEET ME TIM BAB,here is dallas museum of art,good daughter meet me tim bab,1.0,165.4
+euphonia_1064a3dc1672fa9417c38ab3a635f6ed.wav,val,I'm hot.,I HURT,i am hot,i hurt,0.6667,73.9
+euphonia_1151b305490b8e551ac8d31682185367.wav,val,How long will it take?,HURRAH UM TUT TUT,how long will it take,hurrah um tut tut,1.0,101.6
+euphonia_12a59cf8db5090a341ce540f4be12018.wav,val,I may not go back.,AND IN THAT APPROP,i may not go back,and in that approp,1.0,83.7
+euphonia_12b84e6f5332ef95dbf90246c84cb565.wav,val,Patter.,PERT,patter,pert,1.0,74.6
+euphonia_1396e8b86181797611292cce9ecce839.wav,val,mobile,,mobile,,1.0,46.9
+euphonia_13ae1af945a0fb2d8709611c8178f307.wav,val,The romance lasted a year.,DO ROME BUT RET,the romance lasted a year,do rome but ret,1.0,167.9
+euphonia_141719779c3717723b6643a63cf91182.wav,val,I can hear and understand everything you say.,O KA HEIN THEY DID,i can hear and understand everything you say,o ka hein they did,1.0,166.8
+euphonia_15e41f2a43e653d09656d4c5d7b146f3.wav,val,She subscribes to all major academic journals.,FIRST TOPIC PROPERTY THEY METALS DURING THEIR,she subscribes to all major academic journals,first topic property they metals during their,1.0,231.0
+euphonia_16a720689aa2b6a516b88ce100725844.wav,val,All other camps are declaring a result.,OH DAN CLICK PISS OH DOOD CLEAN,all other camps are declaring a result,oh dan click piss oh dood clean,1.0,230.3
+euphonia_17fa77aa79d3c3b44dfa4cb82603b417.wav,val,Thanks for reminding me.,DUPA DE,thanks for reminding me,dupa de,1.0,119.1
+euphonia_184c543f5099ab6e46ac24ab94a4ce36.wav,val,play something else,DROP IT IN,play something else,drop it in,1.0,92.9
+euphonia_189122d33f023a4815cb8ad162af945d.wav,val,Turn it off,PUNIT,turn it off,punit,1.0,74.2
+euphonia_18a4c3a19a13a0efec525447fd9ba82a.wav,val,You have updates from Four Shared and three other apps.,HE WORE UP DOCTOR FROM THE THINNER OUT THERE HIP,you have updates from four shared and three other apps,he wore up doctor from the thinner out there hip,1.0,284.9
+euphonia_190f77b984f92621e8bddd79af285629.wav,val,Show me.,,show me,,1.0,36.4
+euphonia_1942eca39b6adc426300c70fe75593ce.wav,val,I thought you would be smarter than this.,I THINK OVER THE BACTERIAL THE ENTHURG,i thought you would be smarter than this,i think over the bacterial the enthurg,0.875,167.5
+euphonia_196bb8dc2487bde784f45a3d45fa2e7b.wav,val,Would you come?,THEY WILL,would you come,they will,1.0,63.7
+euphonia_1a5aba16dacd3f5d31389ea3790f2c7e.wav,val,Set timer for two minutes.,FIT TIMBER BIRD,set timer for two minutes,fit timber bird,1.0,102.0
+euphonia_1b00400422e8995552dc2f9ae777c7e8.wav,val,What time would I be done?,FUN TO TAMPLE,what time would i be done,fun to tample,1.0,93.3
+euphonia_1bd22b01bf6ab483c80bf60319b77053.wav,val,Like vinegar fruit flies love the smell of wine.,OCTOR VIDO FIGUET BURNT LOVE TO DICK DAY FROM,like vinegar fruit flies love the smell of wine,octor vido figuet burnt love to dick day from,0.8889,221.9
+euphonia_1c1d74d380b6d56ea78da5e77eb56642.wav,val,The fruit came in a box.,DEEP ROOT,the fruit came in a box,deep root,1.0,127.8
+euphonia_1cde9e3c50373ee21e70d976ff9f092b.wav,val,five,,five,,1.0,36.6
+euphonia_1d1e4025309ebc2f6c0f411d4284f9c8.wav,val,What grade are you in?,FOR TEMPERA,what grade are you in,for tempera,1.0,101.4
+euphonia_1d421eaa2e78b61f3b78cbb707f814d1.wav,val,See you soon,SER,see you soon,ser,1.0,64.0
+euphonia_1d76428c6b50378a5a97760f68e197ac.wav,val,Sounds like hard work.,SO THE ROCK HURT THE,sounds like hard work,so the rock hurt the,1.25,120.4
+euphonia_1dabd3c32de9ea32653d1fadd189e9cb.wav,val,stop the alarm,,stop the alarm,,1.0,73.0
+euphonia_1f57bb193dd67c5deac13ce73c3f7362.wav,val,Tell me a joke,TIM,tell me a joke,tim,1.0,64.0
+euphonia_20f6d438e206d1a221e02ab2b3b27ff5.wav,val,You have messages from Cortez.,HEY THIS AVERS BLOOM,you have messages from cortez,hey this avers bloom,1.0,164.5
+euphonia_20ffdf991f0af7f3e1680e051faa7133.wav,val,Like you said they're trying to break into hollywood.,WHO SAID THAT THERE ARE TIME TO BUILD IT TO,like you said they are trying to break into hollywood,who said that there are time to build it to,0.8,240.3
+euphonia_21ffcf98a19d2fb66476aaec702cc94b.wav,val,Help me change the Skywire settings.,WHO PERMIT TO THE DEEP CLEAR,help me change the skywire settings,who permit to the deep clear,0.8333,157.0
+euphonia_22af02d466c6c4f6a1e4475572ccc89b.wav,val,Change your Assistant's voice.,TIV,change your assistants voice,tiv,1.0,154.7
+euphonia_22e6754d9f8b311acec9114f7d609577.wav,val,100,BUT HOW,100,but how,2.0,63.8
+euphonia_23913677fbbc87c08263d317d2ff4ea0.wav,val,Do you like her?,THE WOO,do you like her,the woo,1.0,73.6
+euphonia_244e3840fd43f40d57515576957a64b6.wav,val,I like jokes.,ARK,i like jokes,ark,1.0,63.6
+euphonia_2535c58130e79535393bb01e5a4bd57f.wav,val,This is the sound of a babbling brook.,GOOD THIS SO THE PURPLE AND,this is the sound of a babbling brook,good this so the purple and,0.875,156.8
+euphonia_258f43075d8a88be9dfffb467b08f53d.wav,val,Myanmar Digest is a weekly newspaper published in Burma.,BOO BA DO IT IN THE PEEPEE PUPPLE,myanmar digest is a weekly newspaper published in burma,boo ba do it in the peepee pupple,1.0,320.5
+euphonia_260b38430d1c41be180700a003c3fc6f.wav,val,Others scattered around the world.,ARE THERE FOR K TUNING YOU KNOW THE THE,others scattered around the world,are there for k tuning you know the the,1.6,166.0
+euphonia_264caa09f6b0e6bc9b822112c2b7f0e7.wav,val,But still I think it's kind of their business.,AH BUT DON'T CAN'T LEAVE THEY'RE BIT,but still i think its kind of their business,ah but do not cannot leave they are bit,1.0,250.5
+euphonia_268c25a9473b1429567b829160008e51.wav,val,start over,,start over,,1.0,45.5
+euphonia_26e350767d076aad02f1dd6b2b1160b4.wav,val,first one,BENITOR,first one,benitor,1.0,64.8
+euphonia_274718cfcbb2b5ba2969ff4bf22d643d.wav,val,What time will you be home?,FAIR,what time will you be home,fair,1.0,110.1
+euphonia_27dcc123713d76083a7bc502fe8e7aba.wav,val,I feel scared.,FEAR THE,i feel scared,fear the,1.0,100.4
+euphonia_2811e776717be757ccf41f4e59c105fa.wav,val,You could cook an elaborate meal.,EVEN TO THAT CONTIN,you could cook an elaborate meal,even to that contin,1.0,157.8
+euphonia_28b1906a210450a88c414f0ea26c3e4d.wav,val,Bladder.,,bladder,,1.0,65.0
+euphonia_28d689553eccd7a3a739a01488ea96f9.wav,val,I would like to make a date with you.,AROUND IT THAT,i would like to make a date with you,around it that,1.0,139.5
+euphonia_299d4e74b1479d5ceae9a2b24a14a9ab.wav,val,Can you bring me flowers?,MORE COO PETER B,can you bring me flowers,more coo peter b,1.0,112.2
+euphonia_29fe9ce83ccf54760c109b5fb4a47544.wav,val,Playing some music on TuneIn.,PUT IN IT WAS THE CLOUD TO WINDOW,playing some music on tunein,put in it was the cloud to window,1.6,149.1
+euphonia_2a53fc268c84920e54abc82ec54e3b72.wav,val,hint,,hint,,1.0,27.8
+euphonia_2a5463b0bcbe67932b05314fce193952.wav,val,I don't understand,THE THE,i do not understand,the the,1.0,74.0
+euphonia_2b03d097398c05b3406f0881af3bc91a.wav,val,Please wait for me.,TO,please wait for me,to,1.0,64.9
+euphonia_2bb60036f8c49db32a01443b9bf59156.wav,val,play my Spotify,CLEAR BUT,play my spotify,clear but,1.0,110.5
+euphonia_2c4ccc77f29b1a98735bd8555b34b4ad.wav,val,Good,BUR,good,bur,1.0,73.7
+euphonia_2c6e24a9d466adde1802cf5f467e8142.wav,val,Would you like to go with me?,THE ROCK,would you like to go with me,the rock,1.0,101.8
+euphonia_2cdaffbcae0677551e15143ddc7067b6.wav,val,How about it?,HER ABOUT,how about it,her about,0.6667,73.1
+euphonia_2d357e6ad27b16e1e54ea785f40a05f4.wav,val,lower family room lights,YOU ARE BEING BETTER AND RO,lower family room lights,you are being better and ro,1.5,119.7
+euphonia_2d4cdf134e9d184d3a9c4d709e7d2d92.wav,val,warm southern wind,ROOM SO,warm southern wind,room so,1.0,100.9
+euphonia_2eb30592765d0afa20434b45ccfa93b2.wav,val,It's not my cup of tea.,YOU TURN NOT TO EMBAR COPY VICT,its not my cup of tea,you turn not to embar copy vict,1.0,111.4
+euphonia_2ec7b7fc170e137d663c9c001a3f823c.wav,val,May I take a message.,NOW TOO CLEAN YES,may i take a message,now too clean yes,1.0,109.4
+euphonia_2ed3d9f07d95a2b782d8f46f77df3d1e.wav,val,What is the weather today?,FIRST THING YOU COULD DO ME DO,what is the weather today,first thing you could do me do,1.4,128.4
+euphonia_2eded36497cd27016ad7ade16b53307b.wav,val,Turn left onto Sunrise Highway North Service Road.,TIM SO NEAR THE,turn left onto sunrise highway north service road,tim so near the,1.0,246.0
+euphonia_2eef6056b29e5d546ed0f442289c152d.wav,val,I don't think I over eat and I do exercise regularly.,AH DELTA OF RE,i do not think i over eat and i do exercise regularly,ah delta of re,1.0,264.9
+euphonia_2f5320b95a7be4108faf1d5e013d7bdb.wav,val,turn off the light,TO,turn off the light,to,1.0,72.7
+euphonia_2f55bbab787def78570dae068967fe57.wav,val,Your reservation at Hotel Monaco ends July 23rd.,YOU WILL GIVE IT HOOTY RUN OUT AND PART TO,your reservation at hotel monaco ends july 23rd,you will give it hooty run out and part to,1.25,291.5
+euphonia_30e3f00aefba77bf7ac87ff7e3a4d0e4.wav,val,We are going home.,WHERE,we are going home,where,1.0,92.5
+euphonia_312dfb4d82628176e47e93cb8b5f920c.wav,val,Can you follow me?,TO,can you follow me,to,1.0,136.9
+euphonia_31acb6d2b22a30732e6ee72a6d89ea6a.wav,val,I only smoke and I only drink beer occasionally.,AH RUNS IN BED IF THE HOUR LITTLE KAPPOIN IT TAKES THE DO,i only smoke and i only drink beer occasionally,ah runs in bed if the hour little kappoin it takes the do,1.4444,231.1
+euphonia_31e017858868a4a34a745e5ae3c3b630.wav,val,How is the weather?,FERTOO,how is the weather,fertoo,1.0,75.3
+euphonia_32141d3dbfdccf27e26a6284e678d955.wav,val,How are you doing?,HUNG,how are you doing,hung,1.0,65.3
+euphonia_341b01416c5567c8767e14177255d3b5.wav,val,17,SIMPLE,17,simple,1.0,54.8
+euphonia_34a4e0932dd6344d73db4f66c97673f1.wav,val,make a call,BEAT,make a call,beat,1.0,55.6
+euphonia_35f4653ed2f180032f4abc0e1d4ed93d.wav,val,How do you feel?,,how do you feel,,1.0,64.7
+euphonia_35f779a0036770f97756f899c02521ac.wav,val,Good to see you.,ON THE,good to see you,on the,1.0,73.1
+euphonia_38394c3eeaace6b65daa90e11d4f8c0f.wav,val,shut down,,shut down,,1.0,54.5
+euphonia_38adc2232f5c769f792c59c23b4a20e4.wav,val,power off,,power off,,1.0,36.9
+euphonia_3945637d24da3ce4f5768b99a696b654.wav,val,It's nice to see you again.,RETURNED TO,its nice to see you again,returned to,0.8333,92.7
+euphonia_394b4e3e3dcd12b041e0f7d15bed26dc.wav,val,Show notifications.,SOON THEY WOULD PREPAR,show notifications,soon they would prepar,2.0,90.8
+euphonia_3a0c705541b8b56ec721668fdd51ada5.wav,val,Oh what did you teach.,WHO FOOT TO DO IT WITH TUTU,oh what did you teach,who foot to do it with tutu,1.4,147.7
+euphonia_3af23e564f1f6a1a8ac8b2b20c2af23e.wav,val,Like who wants to marry a millionaire. oh my goodness.,ROCK WORKED MERELY BERLIN DE WHO BERGARD,like who wants to marry a millionaire oh my goodness,rock worked merely berlin de who bergard,1.0,248.2
+euphonia_3b516b9ebe4952b5f3ea403331e92cd5.wav,val,That's funny so do you plan on going back to Cali when you graduate or wherever life takes you.,SH NITTY FOUND IT SIR WE WERE PRET OR TWO CAR WITH YOU DENNY A GREATER APP TEA,that is funny so do you plan on going back to cali when you graduate or wherever life takes you,sh nitty found it sir we were pret or two car with you denny a greater app tea,0.95,439.5
+euphonia_3b8c468455d00c4ec363e2476bf2366d.wav,val,She happened to pick New York cause she could win in New York.,WHO PIT POOPIT NORTH WHEN IT,she happened to pick new york cause she could win in new york,who pit poopit north when it,1.0,285.2
+euphonia_3b925cb2386d5dec73950d6c4ce7eccd.wav,val,two,,two,,1.0,37.8
+euphonia_3c1205e203fb091dd3857532929c0c59.wav,val,Turn up thermostat to 70°.,TILL I PUT THEM IF THEY DID IT TO THE AVEL DE,turn up thermostat to 70°,till i put them if they did it to the avel de,2.2,166.8
+euphonia_3c725c83d9f5cd765911b9f3a770c360.wav,val,Who said so?,HOW SAID,who said so,how said,0.6667,56.7
+euphonia_3cc419330b3778ef696fca5d561b40d4.wav,val,close grid,CRUEL,close grid,cruel,1.0,55.8
+euphonia_3d4fef5905475d9175cb3f25bb7c0f17.wav,val,play cardi B,PRUE PUR,play cardi b,prue pur,1.0,130.1
+euphonia_3d880ed033740d69b2a676f42c9de4db.wav,val,I was unable to show it.,AH WELL BE TO,i was unable to show it,ah well be to,0.8333,130.5
+euphonia_3ed5cbb8acd64619ce924e9fc720814d.wav,val,temperature,TO BE A P,temperature,to be a p,4.0,74.3
+euphonia_3ed77d33e68f9dd75958473d8096c5d9.wav,val,Extends to Chicago is a podcast in the area.,NICOUNTED TO PUB TITTY,extends to chicago is a podcast in the area,nicounted to pub titty,0.8889,222.4
+euphonia_3f960f337a396ced0dba79634d3aa41f.wav,val,Shut down accelerators.,FITZIN HERE UNTIL,shut down accelerators,fitzin here until,1.0,145.6
+euphonia_3fa1a639742943831c42d5dc6c52af54.wav,val,turn off the living room TV,TO OPEN TIPPI,turn off the living room tv,to open tippi,1.0,128.5
+euphonia_40d7af25ea70ff02593f5d970a706184.wav,val,lower volume,,lower volume,,1.0,110.3
+euphonia_4194931e83b43dc3773f3621b4d64a27.wav,val,About 11 hours.,ABOUT YOU,about 11 hours,about you,0.6667,100.8
+euphonia_41a7be462ed531eb210c26aa80178938.wav,val,Delete to the beginning.,DO NOT DIPA,delete to the beginning,do not dipa,1.0,91.9
+euphonia_465daaceae11019ab24367bdb394c0cb.wav,val,Here is information for flights arriving in Los Angeles.,HE BROUGHT UP ON,here is information for flights arriving in los angeles,he brought up on,1.0,247.8
+euphonia_46bdd8d39ead1400d5623d1918f34ecf.wav,val,Can we talk?,PERIO,can we talk,perio,1.0,64.3
+euphonia_4768a00d6bde7d300ab3cc29601b9505.wav,val,You on your own.,,you on your own,,1.0,82.7
+euphonia_48343b5574d674f11941bc0d06edc03f.wav,val,Just double tap the right earbud.,YET THERE ARE TIPANT OF WELL TO,just double tap the right earbud,yet there are tipant of well to,1.1667,165.7
+euphonia_49ae44f98110b2c7ee263a04dc298dd8.wav,val,Well that's wonderful.,WE NEED TO GET THE,well that is wonderful,we need to get the,1.25,110.8
+euphonia_49b893e07e64b1d669006d2f23d3e048.wav,val,That's the last resort.,KIT DO TO ME,that is the last resort,kit do to me,1.0,111.2
+euphonia_4b27bf51b8af26eef7d1e4915536a09b.wav,val,Sorry if I seem that way.,SO IF,sorry if i seem that way,so if,0.8333,119.4
+euphonia_4b5d6432de35a1f3048c4fe84cea2c9d.wav,val,play some,PUT OF,play some,put of,1.0,63.8
+euphonia_4cc766cd30cfc671e6ad32d7258a9eb0.wav,val,resume,,resume,,1.0,37.0
+euphonia_4d83af85ca6336d2d0719074bd6edd99.wav,val,Why don't you give it to me?,FOR DITT,why do not you give it to me,for ditt,1.0,102.3
+euphonia_4f2728df5583c3a54870baa411d6921e.wav,val,Remember Jamie as Mom?,,remember jamie as mom,,1.0,155.8
+euphonia_4f53486ec40fa83acfc21b75d830f3d0.wav,val,Grab one of those.,IF,grab one of those,if,1.0,91.8
+euphonia_504f63a22478c8c3010d2f7560da1a5f.wav,val,That's great.,IT TAKE,that is great,it take,1.0,73.7
+euphonia_50b794e19a5e9b51e51f6f9293deabb4.wav,val,Is it related to linguistics in any way?,THE GOODY RETIRED THE TWO NOT WITH,is it related to linguistics in any way,the goody retired the two not with,1.0,273.7
+euphonia_50e959ae358cebd907d099486e8db0eb.wav,val,Send a text,SIR,send a text,sir,1.0,83.3
+euphonia_5221fcd7aed78e77509add1c7303d63c.wav,val,Can you please repeat that?,TO PRE,can you please repeat that,to pre,1.0,101.9
+euphonia_53113ac4cc07b5666c257683a3c95105.wav,val,Do you go home for vacations or have you not been home this whole time.,OH THE WOO OF WHOM THE PETAKES HEAVY NOT TO GIVE HIM A WHOLE TIME,do you go home for vacations or have you not been home this whole time,oh the woo of whom the petakes heavy not to give him a whole time,0.8667,313.4
+euphonia_53539c70b38e59c8bd2aa50ad6ca850e.wav,val,Set timer for one minute.,SIT TAMBA DOT MINT,set timer for one minute,sit tamba dot mint,1.0,110.5
+euphonia_540fbf1124e620ef3d1f57daed540d7e.wav,val,call Mike,WELL KUM,call mike,well kum,1.0,64.1
+euphonia_55128891ea0cf91a9f0d58d9bee7dec1.wav,val,hide keyboard,HURT KEEP,hide keyboard,hurt keep,1.0,83.0
+euphonia_553e61df1672a6d15ccbcfc4eb983666.wav,val,The last time.,DONIT TO,the last time,donit to,1.0,91.5
+euphonia_55401151c14ee66972a2025788b24a8c.wav,val,A little more often.,IN A TUM,a little more often,in a tum,1.0,65.2
+euphonia_5595f967d8f0bb3df737b9e265747a81.wav,val,Wait until tomorrow.,MINT HUT,wait until tomorrow,mint hut,1.0,84.0
+euphonia_559a1d63304786eb977c7df030443ad4.wav,val,Where were you?,HERE,where were you,here,1.0,64.3
+euphonia_560c938cca00d000e80e42061e0c682e.wav,val,Side by side.,SO THE,side by side,so the,1.0,65.0
+euphonia_56aefabd8f804760c95366c77992aac8.wav,val,I don't like to.,THAT THERE ARE,i do not like to,that there are,1.0,82.8
+euphonia_579a6b0acbc8492e4bdcbf2036765c5d.wav,val,What sounds best?,FORTY SO,what sounds best,forty so,1.0,92.2
+euphonia_57f13c1f5666a38ebfee12aa0e1116c9.wav,val,What?,,what,,1.0,27.6
+euphonia_582262cd1e36fed4785948f907a73d1c.wav,val,The game show that goes the distance.,DID THEY MONSIEUR KNITTED BIT DICK,the game show that goes the distance,did they monsieur knitted bit dick,1.0,147.5
+euphonia_582fa3e1539549e61da59b4b8c6aa11a.wav,val,When you get back.,YOU BIT BIT,when you get back,you bit bit,0.75,119.6
+euphonia_58fa177cbb4a8e2802d37a9b49c1f0a5.wav,val,15 16 17 18 19,VIVITISM EIGHT,15 16 17 18 19,vivitism eight,1.0,228.3
+euphonia_594e5a0882de20d766084819528f2ffc.wav,val,What is there to see in Paris?,FORTY AND CONDEAR TO SHOW IT,what is there to see in paris,forty and condear to show it,0.8571,139.6
+euphonia_59818c17f519815eb2e5659d5fa8a256.wav,val,less squares,,less squares,,1.0,73.8
+euphonia_5994a24d39d0455444df17313e60025d.wav,val,Undo.,,undo,,1.0,47.1
+euphonia_59ce4adbdb6366ab24559e3ccbfc430b.wav,val,Stay by the window.,THERE BURNTON,stay by the window,there burnton,1.0,94.5
+euphonia_5bba5accb406f2fb35ed9da04beca7e1.wav,val,I'm really worried about it.,I VERY YOUNG HERE,i am really worried about it,i very young here,0.8333,112.3
+euphonia_5d29b4e629fe3d3722543a36890fdd41.wav,val,I am ready to go back.,ABERATING,i am ready to go back,aberating,1.0,75.4
+euphonia_5dd4ed70ae7222333a22eb236e5a90f5.wav,val,six,,six,,1.0,37.6
+euphonia_5df9154d67ff808cadb4679382b275ca.wav,val,turn off living room lights,TO LIMBER UP,turn off living room lights,to limber up,1.0,111.0
+euphonia_5fc5fb6f6ca667a652fd137b276ff57c.wav,val,You could cook an elaborate meal.,IN THE COVETED EUPIRIE TIM,you could cook an elaborate meal,in the coveted eupirie tim,1.0,165.4
+euphonia_61636c59e26b5af557a03d26da4d73d7.wav,val,It was good of you to come today.,YOU TERMINE CARPET,it was good of you to come today,you termine carpet,0.875,147.9
+euphonia_6192325171ac1d0118680520bacf2d6e.wav,val,Is that what power is?,YOU DO NEED TO FOOT TO,is that what power is,you do need to foot to,1.2,92.3
+euphonia_61a8a8032c7bb89b3850aee82efbdf79.wav,val,And seeing some snow.,,and seeing some snow,,1.0,119.4
+euphonia_624045e9e777b9f7ab19f8f4bf438ffc.wav,val,This weekend.,,this weekend,,1.0,73.8
+euphonia_6276eac376cda9419dfb11c0ebacee09.wav,val,Where will you find such a girl?,,where will you find such a girl,,1.0,109.5
+euphonia_62a7b05a73b39aa6fee11952600827cd.wav,val,Where do you work?,FEAR,where do you work,fear,1.0,91.2
+euphonia_62bffb9da6e0b213f63f12b7fd14c51a.wav,val,Too much for me.,TRUMBER,too much for me,trumber,1.0,55.6
+euphonia_638910ec4030076969cd6a8c87ec2990.wav,val,Want to take a quiz?,BUT TO TO TAKE,want to take a quiz,but to to take,0.8,100.5
+euphonia_6428e715129f90de5b9b9d630fb6ff1a.wav,val,Right.,,right,,1.0,55.9
+euphonia_6485bd1c63a6e5ea60a87217ec5b9c06.wav,val,Umbrella is first.,BUT PETER,umbrella is first,but peter,1.0,100.7
+euphonia_665a9e3b468d356a2aacd9e600e7cb81.wav,val,I wonder do you know what their like hypothesis is?,A WHITTING THE VIEW IN THE FOOT THE ROCK HYPOTHESIS THINK,i wonder do you know what their like hypothesis is,a whitting the view in the foot the rock hypothesis think,1.0,249.1
+euphonia_66624cbbb4187d2962a9764cdf083c54.wav,val,Type.,PURP,type,purp,1.0,64.7
+euphonia_66cb0729642d69f9f92c291529dc522a.wav,val,Yeah I said no to that one.,YEARN SAID THE MOVED TO,yeah i said no to that one,yearn said the moved to,0.8571,155.7
+euphonia_68dc2e06bea0c2a7ff6e31eb6b1526f3.wav,val,Mostly I remember.,BUT TO RE,mostly i remember,but to re,1.0,73.4
+euphonia_6bd2b96230ab7df7df9eec9d3487245e.wav,val,Okay delete.,BOOKM,okay delete,bookm,1.0,72.8
+euphonia_6be18ec8b17f2f90fdd5779a25f50b65.wav,val,play next song,PULL NE,play next song,pull ne,1.0,73.8
+euphonia_6c79d5f9aed667d7d8d0fca0f4e886c1.wav,val,Want to try a quiz?,WELL TO OUR LITTLE,want to try a quiz,well to our little,0.8,92.2
+euphonia_6cd5a4906e8b04a10e46093b78d1f437.wav,val,Do you want to talk about it.,EARTH DUM MOPED TO HER ABOUT,do you want to talk about it,earth dum moped to her about,0.7143,120.1
+euphonia_70e39877f9a87435d4f8a2ff4b1ed4b8.wav,val,it's time for bed,TURNED POMP OF YOUR BIT,its time for bed,turned pomp of your bit,1.25,101.1
+euphonia_71cb0b0ad4e4ae747c4302e8ecbed651.wav,val,Swipe right.,FEAR,swipe right,fear,1.0,64.7
+euphonia_7204b803da7103d893dd5142f09a875e.wav,val,Here is Party City.,WHO YOU PUR,here is party city,who you pur,1.0,92.3
+euphonia_724f253459ea9c8615efe80cda35bd11.wav,val,The cafeteria was also improved.,DEAR CAVE PETUNIA WELL HIM APPROVE,the cafeteria was also improved,dear cave petunia well him approve,1.2,184.5
+euphonia_7368b148737c6dade05fd843d5937903.wav,val,That's wonderful.,IT TOOK,that is wonderful,it took,1.0,82.9
+euphonia_75f40709223859698fa31af57d32b450.wav,val,People who exercise every single day can damage themselves so I'm starting work out every other day.,O PI POOF IT IS HIS SANCY IF IT ISN'T CALLED DIBI DIM C FISH SOUTIN WALK OUT IF ERR OTTER,people who exercise every single day can damage themselves so i am starting work out every other day,o pi poof it is his sancy if it is not called dibi dim c fish soutin walk out if err otter,1.1667,506.6
+euphonia_77743d68762039e454ccf3a54e94cad8.wav,val,play White Noise,PEAR FATE,play white noise,pear fate,1.0,81.9
+euphonia_785c97b270f5a8aa723b0c5afa44da4f.wav,val,Try again or quit and come back later.,TALL THE CUP OF BED,try again or quit and come back later,tall the cup of bed,1.0,174.4
+euphonia_793a28682e4a949667e355d2ead6ceb5.wav,val,What is the weather today?,FOURTEEN COULD DO ME,what is the weather today,fourteen could do me,1.0,92.8
+euphonia_7a64d5b9652b7560e55506794d27d5ae.wav,val,Clear all devices.,CLUE DE BA,clear all devices,clue de ba,1.0,83.8
+euphonia_7a83b57251f8677f2451bfa81c8a8449.wav,val,volume Five,FIRM,volume five,firm,1.0,73.2
+euphonia_7aedfb8902fc486f07ce3fc2d6a4fa56.wav,val,I am going home.,O THE BOY,i am going home,o the boy,1.0,82.4
+euphonia_7b5fa7267c41efee29bd6b09c5140437.wav,val,Just wait and find out.,TO IT TURNED THE FAT,just wait and find out,to it turned the fat,1.0,128.1
+euphonia_7b94ffbb3d6087b7f428c297d4dc217a.wav,val,Add a reminder,,add a reminder,,1.0,81.7
+euphonia_7c822e5d4788974a8aa0e2f13df9ada4.wav,val,The checks were for odd amounts.,THEY TAKE ROO TO EARTH,the checks were for odd amounts,they take roo to earth,1.0,175.5
+euphonia_7da1cdf852f333cf1c9a53e76dcaa270.wav,val,play Ariana Grande,PETER NOW,play ariana grande,peter now,1.0,100.2
+euphonia_7dbf787443913820f1c8957c9f6c5df6.wav,val,Where we going?,,where we going,,1.0,73.7
+euphonia_7e650c34893968f2575e5c3d409cfede.wav,val,How have you left the ancient love?,HA HELPHATIC IT'S FIT TO LOVE,how have you left the ancient love,ha helphatic its fit to love,0.8571,195.2
+euphonia_7fcd4511ad6a04325ba20be85b59ab15.wav,val,turn off bedroom light,TO BEAT THE ROOM,turn off bedroom light,to beat the room,1.0,93.5
+euphonia_8057d7631e12c7c2e1f511ac7563e841.wav,val,I'd like a morning snack.,OF THE RUCKING,id like a morning snack,of the rucking,1.0,111.5
+euphonia_806c50e857f5f44b400e0a3733014d1e.wav,val,lower television,WE TUTOR,lower television,we tutor,1.0,93.0
+euphonia_8086a777c01ce03aae9ef321f9917c32.wav,val,I feel the same way about it.,HER FAIR TO GIVE ME ABOUT HUNTER,i feel the same way about it,her fair to give me about hunter,0.8571,140.7
+euphonia_81e462441c5df7b8f04ddbf7bc783df4.wav,val,I know its the wiring.,HELLO TILL YOU DO,i know its the wiring,hello till you do,1.0,102.5
+euphonia_81f01a6f5daf586907808006a217d791.wav,val,Bottom of the rung as far as the ways we can interact with each other.,BATHROOM THE DUKE WERE VERY DOMITTED IT TO IT IT,bottom of the rung as far as the ways we can interact with each other,bathroom the duke were very domitted it to it it,0.9333,313.9
+euphonia_82d4674a40d098b024b6a36f5a2dda1f.wav,val,Remember Darth Vader as your father?,WE MAY BE THROUGH THE,remember darth vader as your father,we may be through the,1.0,183.5
+euphonia_837c12e13858a88f11f81e11fc6f2a33.wav,val,turn down kitchen lights,TO THE TAPE TONIGHT,turn down kitchen lights,to the tape tonight,1.0,112.4
+euphonia_83c3fcc78cc997bc8b1ce6d9bd8e9dba.wav,val,Why did you get so many?,,why did you get so many,,1.0,101.1
+euphonia_8420cc73ddbc85cd5e49e7af6935c92e.wav,val,Here is Dallas Museum of Art.,HE MAY GIVE ME THAT,here is dallas museum of art,he may give me that,1.0,165.3
+euphonia_867cae904957ab988646b80a46803d29.wav,val,How did it go?,HOW DID THE,how did it go,how did the,0.5,82.7
+euphonia_8846f65151aeeb4aed3468c8de7957eb.wav,val,How are you this morning?,,how are you this morning,,1.0,63.7
+euphonia_88bb4869a946d31900c32a166d4c00d2.wav,val,Let it go.,LOOK,let it go,look,1.0,64.1
+euphonia_88e6e292c2b2bf63e384ac558fe9cb83.wav,val,turn on the bedroom lights,TO DEPEND THE,turn on the bedroom lights,to depend the,0.8,101.1
+euphonia_8a7c98d7b969bbf2b7fe4e9be7652c72.wav,val,Do you know where would we go from here?,HERE,do you know where would we go from here,here,0.8889,165.0
+euphonia_8b104f16defd537080109de6414682e0.wav,val,five six seven eight nine,FOR THE ABID IT,five six seven eight nine,for the abid it,1.0,157.2
+euphonia_8c62fa4848f286d9a340ab0429d7c013.wav,val,Wisconsin was founded in 1848.,WE ALL COUNTS AND WERE ABOUT IT ANTI,wisconsin was founded in 1848,we all counts and were about it anti,1.6,209.5
+euphonia_8c70c21f4878d85fb5a035ecd01b7de6.wav,val,Do you learn by seeing or doing?,GOOD MORNING ABOVE SIN,do you learn by seeing or doing,good morning above sin,1.0,137.8
+euphonia_8d436154cc4e9d07759cca2ae52e57b4.wav,val,We made the alcoholic drink by mixing stout with ale.,B THE ARCTIC WHERE THEY,we made the alcoholic drink by mixing stout with ale,b the arctic where they,0.9,292.1
+euphonia_8eddea72f0a7a0e11106d4f337ff8627.wav,val,Merge onto West State Highway Loop 306.,MOVE TO ROOM TO STEADY HUNG RUPATHETA WHO,merge onto west state highway loop 306,move to room to steady hung rupatheta who,1.1429,247.7
+euphonia_92faa824e2f58a409502d9cb7ab7d399.wav,val,Turn down alarm volume.,TO,turn down alarm volume,to,1.0,91.6
+euphonia_94b36b7eced694d4b97470faa91a48de.wav,val,set reminder,FIT TO,set reminder,fit to,1.0,56.2
+euphonia_958f898695a06eda37c9ef4ed2fcaaa7.wav,val,Excuse me for interrupting.,WILT GO MAIN FEEL A TRU,excuse me for interrupting,wilt go main feel a tru,1.5,119.4
+euphonia_96efa1e349423507fb2ab259f9d33715.wav,val,My real name is Hu Wei.,BUT IN,my real name is hu wei,but in,1.0,118.8
+euphonia_96f4d1a85144a6343c30f7f66199973a.wav,val,I'd like to watch the evening news,WE'RE UP TO THE RIVIN AND THERE,id like to watch the evening news,were up to the rivin and there,0.8571,193.0
+euphonia_97cd5141a5bd53834770789c5cb4ab48.wav,val,What did you come with?,THOUGHT THAT THERE WERE COMP,what did you come with,thought that there were comp,1.0,92.0
+euphonia_97f4c174289c521bcf04968269740b01.wav,val,Here are writers for Countdown.,SHE BLOOD TURFAULTE,here are writers for countdown,she blood turfaulte,1.0,164.4
+euphonia_985afd6f2b0f012165917e046e4b7d87.wav,val,We got to the bridge early in the day.,WROTE DOT TO THINK PITY,we got to the bridge early in the day,wrote dot to think pity,0.8889,148.0
+euphonia_98dde825589d84061ce898d3b8a67271.wav,val,PlayStation 3 was introduced in 2006.,PROVED THE IT WERE TYPIC TO DOWN WITH,playstation 3 was introduced in 2006,proved the it were typic to down with,1.3333,257.6
+euphonia_991ae8b15c1a9608010b21a8070322d7.wav,val,Is that true?,A KNIT,is that true,a knit,1.0,64.5
+euphonia_99bbfb553f7bfcf44fe81b69ab8d0ee0.wav,val,Things are not what they seem.,THEN NOT TO FOOT,things are not what they seem,then not to foot,0.8333,128.1
+euphonia_99f59d2c3798c5ba151d478d7a73c66e.wav,val,call Grandma,,call grandma,,1.0,72.9
+euphonia_9c4d183637ab6ef2281fb840e1896970.wav,val,Go down the moving walkway in the access path.,ALTHOUGH DE THING WILL TAKE ME AT THE AIR TO GIVE THE,go down the moving walkway in the access path,although de thing will take me at the air to give the,1.2222,193.9
+euphonia_9cf600b62b41ece495d58826befc7edd.wav,val,The game that sounds as fun as it is.,TILL IT SO VERY,the game that sounds as fun as it is,till it so very,1.0,183.9
+euphonia_9da1acb446900ea755e3475d89c16d50.wav,val,What's for breakfast?,FRONT TANKO BITTER,what is for breakfast,front tanko bitter,1.0,103.8
+euphonia_9fa595a5ca74179621053ed28ecaaa83.wav,val,Look at her!,TO,look at her,to,1.0,83.3
+euphonia_9fb9f60adce38685a99e1d7d599346eb.wav,val,Let me see it.,IT REF,let me see it,it ref,1.0,83.1
+euphonia_a05a6fbfadd2f7ea27d439ca25cee7d4.wav,val,I was doing excellent.,I WON'T DO SEE IT,i was doing excellent,i will not do see it,1.25,111.9
+euphonia_a2bae96165d132efd5bfa9746218420e.wav,val,Yeah well you know if things are going well people tend not to change the administration.,YEAH IF YOU DIDN'T ALL OVER PERPETIT NOT TO TIPATE THE BENEFIT,yeah well you know if things are going well people tend not to change the administration,yeah if you did not all over perpetit not to tipate the benefit,0.6875,398.5
+euphonia_a2c1193e9bf89f22ec3ecfc8b3bd0647.wav,val,Bluetooth pairing.,BURROWED TOWARD,bluetooth pairing,burrowed toward,1.0,82.9
+euphonia_a4b205cf27cc840b44900f51adb48d06.wav,val,Now you tell us.,NO IT WILL,now you tell us,no it will,1.0,92.2
+euphonia_a673deb0a2aaa7265b69671fe5d7afb6.wav,val,Tell me more,TWO MOONBER,tell me more,two moonber,1.0,74.5
+euphonia_a677a0aaeabe6c35b12a71789d207acf.wav,val,Mute volume.,MOVE TO,mute volume,move to,1.0,65.2
+euphonia_a73dfc3b856c8823804180a7a96ab55e.wav,val,how much time is left on the timer,HUMBER TO THE TIME YOU GRIE TO DEAD TYPE,how much time is left on the timer,humber to the time you grie to dead type,1.0,175.0
+euphonia_a75a27eaad99a85e514746e0ef271b6f.wav,val,I go the opposite way.,UPPER UP FILTER,i go the opposite way,upper up filter,1.0,110.9
+euphonia_a77c56276d955cf255ba1e11a95a66c2.wav,val,Under a footbridge at midnight in the park.,THE VERY TOPIC TO ME THAT IT DID PUR,under a footbridge at midnight in the park,the very topic to me that it did pur,1.125,221.1
+euphonia_a7f7bd56ae93eac80699c74fa0cdb9a1.wav,val,The Appalachian Spring suite is calm and flowing.,DO A PARA TWIN TWIN BETWEEN YOU,the appalachian spring suite is calm and flowing,do a para twin twin between you,1.0,229.7
+euphonia_a840cab538619d595940e320ad848b2b.wav,val,It doesn't seem fast enough.,TER SEMIU BIT,it does not seem fast enough,ter semiu bit,1.0,119.7
+euphonia_a84dbb7a8b26724cd97132570cab7d36.wav,val,Add 5 ° to each satellite coordinate.,THE FERVANT TO LIVE TO SITU IN IT OVER DU,add 5 ° to each satellite coordinate,the fervant to live to situ in it over du,1.2857,257.0
+euphonia_a9359ce741705d426ddab4fb2d8b7620.wav,val,Is Bluetooth connected?,WE DEPUTED,is bluetooth connected,we deputed,1.0,138.5
+euphonia_a949482a557be8c03743b44c2b165ec9.wav,val,play some music on Spotify,PRETTY WITH GERTO BUT,play some music on spotify,pretty with gerto but,1.0,146.9
+euphonia_a952e11e11eca2c0577862a64c719ce0.wav,val,That's too difficult.,NEAR TWO DIFFERENT,that is too difficult,near two different,1.0,82.3
+euphonia_a9d424742045cb49ea99461ecbc9984a.wav,val,I'm having the same kind of problem.,A SHAPE IN THE SIMPLETELY,i am having the same kind of problem,a shape in the simpletely,0.875,192.7
+euphonia_ab6aea23c9942b13191b3513b4cce32a.wav,val,That makes me laugh.,NICK,that makes me laugh,nick,1.0,91.8
+euphonia_ac01180a0b655ecdbc312f316047d287.wav,val,I think that's okay.,EARTH DID NIP TEN,i think that is okay,earth did nip ten,1.0,92.0
+euphonia_ac7587b4fbd8cda6efd245604a196132.wav,val,I think I've had enough.,THINK HE DID,i think i have had enough,think he did,0.8333,120.1
+euphonia_ac83f9cce5f53928953f77022e963b9e.wav,val,But I do eat lot of fruits and vegetables.,BUT THE FIFTEEN,but i do eat lot of fruits and vegetables,but the fifteen,0.8889,265.1
+euphonia_b097052deea3a1f1d7e645536afd921d.wav,val,before,,before,,1.0,46.0
+euphonia_b0da7e5ad91e453312802cff424fe73c.wav,val,call husband,KUR HUN,call husband,kur hun,1.0,73.8
+euphonia_b25ba11b1d3f773963aa97903905406a.wav,val,Can you follow me?,TWO,can you follow me,two,1.0,82.8
+euphonia_b2bdd9b2f629ccd9085ea9574800da5b.wav,val,here are writers for smack the,HUMMER TIS BEER ABOUT THE,here are writers for smack the,hummer tis beer about the,0.8333,183.5
+euphonia_b4e7565bd8a120311fca1c9fe50e5270.wav,val,four,,four,,1.0,46.1
+euphonia_b56c14cc0ec6eb326c7700549ce7bcab.wav,val,play 80s music,PIT,play 80s music,pit,1.0,117.8
+euphonia_b66a833299a51815a8580a1a3aaa3b38.wav,val,And a cherry turnover.,THE FEAR OF TEAR,and a cherry turnover,the fear of tear,1.0,129.9
+euphonia_b76b56b4a216ad6c14661109d5965e3c.wav,val,Saving note: Remember to buy milk.,SIP IN THE TWO ROOMY BED TO BOW,saving note remember to buy milk,sip in the two roomy bed to bow,1.3333,174.7
+euphonia_b7dffb8c76cf39aabe6af67126e1609a.wav,val,This Mad Lib needs eight words.,DEAR GOONBE I'VE BEEN THERE THE,this mad lib needs eight words,dear goonbe i have been there the,1.1667,146.5
+euphonia_b90367285af679fd130881d4e0023271.wav,val,They bend him right over.,THERE BEEN THE HIP WORKING,they bend him right over,there been the hip working,1.0,120.5
+euphonia_b9be8348e9a2479036e9c18fb09c8ffb.wav,val,How do I know when a mango is ripe?,HOW DRAM NO FEEL ABOUT GRIPP,how do i know when a mango is ripe,how dram no feel about gripp,0.8889,165.0
+euphonia_ba03115e6be5384af76e04e8e1612c62.wav,val,Here are writers for Smack the Pony.,BLOODUBA DIPP,here are writers for smack the pony,blooduba dipp,1.0,185.4
+euphonia_bbb5adb133abb77de22bf85e594a0e65.wav,val,His new wife was Lucy A White.,HEAVEN THE RUA MORE OF IT IN,his new wife was lucy a white,heaven the rua more of it in,1.0,167.0
+euphonia_bcad6cd5537a0277b5731d47d95b5e3e.wav,val,What am I doing?,FOURTEEN BIT,what am i doing,fourteen bit,1.0,84.3
+euphonia_bd41608b87bc1e9ad9e8155d5a2834b9.wav,val,The clay oozed excess water.,DICK KNEW,the clay oozed excess water,dick knew,1.0,139.1
+euphonia_be8055335f5f40ca36e7dd26f1680edb.wav,val,turn off the living room,TO THE DUDE FA,turn off the living room,to the dude fa,0.8,83.7
+euphonia_be9ad3646eae29d5c89da73c07a79cab.wav,val,Here are some breeds of turkeys.,SHE DEEP,here are some breeds of turkeys,she deep,1.0,167.3
+euphonia_bebc3fb9d609293bcde33ecf6f80db39.wav,val,She got it.,,she got it,,1.0,75.1
+euphonia_bf4d8a1898ecbd460653dc7ef6c5bf31.wav,val,Repeat with remaining batter.,REPUTE ME THE RUBY AND,repeat with remaining batter,repute me the ruby and,1.25,128.9
+euphonia_c3e9175f897bf1608b87682d59606585.wav,val,There is one flight a day.,NO FRONT,there is one flight a day,no front,1.0,111.0
+euphonia_c4ea033e0b390dff482ed30689c8da8c.wav,val,Which one is it?,SHIFT,which one is it,shift,1.0,83.0
+euphonia_c50556b2b609bb01a667ddb9ce8089e1.wav,val,No man can.,BEING THERE,no man can,being there,1.0,82.7
+euphonia_c5f52ddca20326d7a605b76ff267e2f7.wav,val,They're supposed to mean you may get a heart attack or something.,THERE SIE PONDER IN THE TECH I TAKE IT WITH,they are supposed to mean you may get a heart attack or something,there sie ponder in the tech i take it with,1.0,287.2
+euphonia_c610d7c2787dfc91f98208c2c6a6726f.wav,val,No one has succeeded in really commercializing thanksgiving.,NO HE'LL TENDENCY SIRI DOT DIFFIN,no one has succeeded in really commercializing thanksgiving,no hell tendency siri dot diffin,0.875,347.6
+euphonia_c65717062028c0214fd9a108d7514926.wav,val,Please let me finish.,SHE DIDN'T IT,please let me finish,she did not it,1.0,82.2
+euphonia_c66e5170c5c76a7c5fd6505cd6f00196.wav,val,It provides useful tensile strength.,WE TAKE PREPARED THE PAIN TRUE,it provides useful tensile strength,we take prepared the pain true,1.2,191.9
+euphonia_c6b53167f5bc9f24b84bb99672cd8c9d.wav,val,play next song,WHOM IT,play next song,whom it,1.0,82.8
+euphonia_c71240d76485ce41762cd0929411944d.wav,val,Give me some?,THANK YOU,give me some,thank you,1.0,64.8
+euphonia_c75deac6e26e7a95c50bed0fafec879e.wav,val,Right here it said everything.,WHAT IN THE FIFTIETHIN,right here it said everything,what in the fiftiethin,1.0,166.3
+euphonia_c7d611118f7287a550861b70a90cdf59.wav,val,Are you messing with me?,ON THESE,are you messing with me,on these,1.0,91.7
+euphonia_c889139ba709983a3e2f370b79a7d00c.wav,val,That'd be pretty early to be getting married.,ER DE TO THE PEN PLAY TO IN TO BE DETON BE,thatd be pretty early to be getting married,er de to the pen play to in to be deton be,1.25,201.0
+euphonia_cbba34c6ea95cd58dd68e8163d0c434e.wav,val,I don't feel very well.,AH,i do not feel very well,ah,1.0,83.4
+euphonia_ccd51132fce4758cb2a2901fbf34dac4.wav,val,The game that sounds as fun as it is.,NEPT SO,the game that sounds as fun as it is,nept so,1.0,195.8
+euphonia_ce4782cd9ec6831cb14bab9709a414bb.wav,val,It was installed there.,TO RUN GOOD,it was installed there,to run good,1.0,127.9
+euphonia_d19f78c14f32541b6182e54f2813a3a8.wav,val,Shall I send a car?,SOON SIT,shall i send a car,soon sit,1.0,83.8
+euphonia_d1da73af8f05284ffaf9f3cf9c9f42f7.wav,val,Where do you go to school?,HERE,where do you go to school,here,1.0,100.9
+euphonia_d226cb1061af98d1022bab5a6ecbeae4.wav,val,I need to sleep.,ON THE THE TERRIF,i need to sleep,on the the terrif,1.0,73.5
+euphonia_d36528d4eb1c71cb8cacc1ca827d2233.wav,val,What's the forecast?,FOOT DIE,what is the forecast,foot die,1.0,73.8
+euphonia_d399a3d55b2ee42c184d0ec6c6a434cd.wav,val,turn off all lights,TO,turn off all lights,to,1.0,63.9
+euphonia_d41ad0f4b8b053772de014614782dba3.wav,val,warm southern wind,RUPERTS SO,warm southern wind,ruperts so,1.0,91.8
+euphonia_d478855905bf50506a613861ee1e6c32.wav,val,The song is well worth several listens.,TOO SOON YOU KNOW THERE'S THE REFU,the song is well worth several listens,too soon you know there is the refu,1.1429,194.4
+euphonia_d4804235271e157c6b44fcdab48ff8a4.wav,val,Explain that to me.,ATTEND THREE KNIT,explain that to me,attend three knit,1.0,91.7
+euphonia_d4ed30f4f6644f6abb3515ea677e46a6.wav,val,call Lisa,POOR,call lisa,poor,1.0,54.9
+euphonia_d60ff3461087d36b9a36acf04697238a.wav,val,What else is on?,WHAT YOU,what else is on,what you,0.75,73.3
+euphonia_d62fd4b5ccb710db15b512a730f65388.wav,val,San Francisco was founded in 1776.,SAID PLEASE TO WELL ABOUT THE ABET SEE IF IT,san francisco was founded in 1776,said please to well about the abet see if it,1.6667,240.1
+euphonia_d87fbf256ee34520cff2fa7f132212f3.wav,val,Long-press.,OH PRAY C,longpress,oh pray c,3.0,101.0
+euphonia_d8bafed00e86b4c9547e07b149d44997.wav,val,turn off the lights,CONTINUE TO DO,turn off the lights,continue to do,1.0,91.9
+euphonia_d984ad24cdc738ef58945aea5f06c03b.wav,val,Sounds like Snuffles had a great meal!,SO LOOK THE FIRST HIT THE INQUIRED,sounds like snuffles had a great meal,so look the first hit the inquired,1.0,201.6
+euphonia_da1c50dbee4cafe5dd82028b6a6b251b.wav,val,So what was that other word for human.,SOON FERTIN A FEW,so what was that other word for human,soon fertin a few,1.0,203.0
+euphonia_da65fa840531873a080c618796d3dc96.wav,val,What's this song called?,HUNT AND FEW,what is this song called,hunt and few,1.0,101.7
+euphonia_da8edebc8e7ca381b61adc5e089f2301.wav,val,Manray needs a job.,BEING THAT THE,manray needs a job,being that the,1.0,109.8
+euphonia_db6e9e263871ed2f241eca2ba7a63264.wav,val,I'll try and call you.,A TIRE THE CREAM,ill try and call you,a tire the cream,1.0,113.3
+euphonia_dc52c9cd84f6c7315d1b990fd8d4967c.wav,val,Where do I go?,FILL OUT,where do i go,fill out,1.0,65.9
+euphonia_dc8403416f70e8dc8643dcc15ce39a75.wav,val,Okay upload recordings.,YOUR CLUE UP LORD THE ROAD CORD,okay upload recordings,your clue up lord the road cord,2.3333,131.3
+euphonia_dd1ae42f59d5ba601695dfb8b3c7d599.wav,val,I have the best name for you: Big Cheese!,IN THE FINITIVE,i have the best name for you big cheese,in the finitive,0.8889,195.3
+euphonia_dd7e1db147b02b1af18ac98fd9819735.wav,val,What's this song?,FELT VERY GOOD DEAR,what is this song,felt very good dear,1.0,74.2
+euphonia_dfb5f40172d16729f2e8636827eccf15.wav,val,You have a calendar entry today at 4:15 p.m.,IF IT TURNED TO THE ANTIVITY,you have a calendar entry today at 415 pm,if it turned to the antivity,1.0,251.9
+euphonia_e08331499be76aba5f25bf9d8aab4872.wav,val,What have you been up to?,WHAT HE DO WITH BEIN LUCK,what have you been up to,what he do with bein luck,0.8333,120.3
+euphonia_e139eab9fb1e1a11e4a614bd6a75af0f.wav,val,Sounds like a cool job.,SO HOW CAN,sounds like a cool job,so how can,1.0,120.6
+euphonia_e17df0bd815865a0786b4c0f2166f1c3.wav,val,play soft music,PRAY TO PRETEND,play soft music,pray to pretend,1.0,92.3
+euphonia_e1ac1d5d9e551cbecdafe13e8cec2ce2.wav,val,What is next?,FELT NERF,what is next,felt nerf,1.0,92.6
+euphonia_e1c9bb4eb3079615a8d7b3a20d7a739b.wav,val,Saint Petersburg College was founded in 1927.,FIT TO FIT TO BIRDO CURVE WORLD DE NINETEEN TWENTY,saint petersburg college was founded in 1927,fit to fit to birdo curve world de nineteen twenty,1.4286,305.7
+euphonia_e235c7040f85170ce80ba7685dfc17a2.wav,val,volume 50%,FROM PIVOT TO PERFETER,volume 50,from pivot to perfeter,2.0,111.0
+euphonia_e354901e577ba53042eaebdb692b57fe.wav,val,How often can I get it?,HUNG IN FAILED CAME A BIT,how often can i get it,hung in failed came a bit,1.0,92.4
+euphonia_e42864f35a820b449a268db66a97c0e3.wav,val,I'm leaving,OH BOOT,i am leaving,oh boot,1.0,65.0
+euphonia_e6670a3fb3db300cbe3de2f9c6815732.wav,val,turn off lamp,,turn off lamp,,1.0,73.8
+euphonia_e69d6a8d22dba11a75c816499a303c01.wav,val,Call me back when you can.,HE CALLED ME A BIT VERY,call me back when you can,he called me a bit very,1.0,116.7
+euphonia_e6cbc1e54be8ea73800da323f887bc92.wav,val,I don't understand what happened,ABDUCER THE FACT HIT,i do not understand what happened,abducer the fact hit,1.0,119.7
+euphonia_e749b0bf59cfa6462c6ca41c97a74202.wav,val,So why don't we do that?,WELL WITH NIET,so why do not we do that,well with niet,1.0,109.9
+euphonia_e9297fd58a38e09421d6780e6e6c72dd.wav,val,Before dinner.,BE APPEARED,before dinner,be appeared,1.0,55.3
+euphonia_ea4b2a4fdd48da4494de7264d3b9ae08.wav,val,Unmute media volume.,UM GET,unmute media volume,um get,1.0,111.0
+euphonia_ea6fd06b4994ac738f36e5bd5975ebb1.wav,val,I think that's good.,AND THE KNIT OF,i think that is good,and the knit of,1.0,91.7
+euphonia_eb077688f48241d32f3f61e453f88649.wav,val,I don't put too much behind it.,ABOUT PIFFER,i do not put too much behind it,about piffer,1.0,146.8
+euphonia_ec5b22c7dd1b1e0c600103bf6287352c.wav,val,Do you think so?,DO WE TAKE,do you think so,do we take,0.75,64.6
+euphonia_ec67884a0568996bfdfd3ba995638738.wav,val,Why did they go to all that trouble?,WELL DID THE LIBER THROUGH KIT,why did they go to all that trouble,well did the liber through kit,0.875,147.6
+euphonia_ec7820aad3f6143c2dfdfd5122de05db.wav,val,I'm very hot.,AH BUT IN A,i am very hot,ah but in a,1.0,73.4
+euphonia_ecbb8ee87e10172599e937481c64141e.wav,val,call my love,HOME,call my love,home,1.0,46.5
+euphonia_ed6e8589d0b733d129a9d2f8acca8d22.wav,val,How are you?,,how are you,,1.0,67.3
+euphonia_ed78cdb2588ff22f348cadfd7e2b1919.wav,val,What do I do now?,FELT,what do i do now,felt,1.0,84.3
+euphonia_edb7c7e4ba98739ba18ef234c5d2770c.wav,val,stop playing,SIT THERE,stop playing,sit there,1.0,64.5
+euphonia_ee84ef431b40693df9b521f75a02eaf1.wav,val,You've got time.,VERY HYPICAL,you have got time,very hypical,1.0,91.7
+euphonia_f0078845b7bd6147a68c6513bf76036d.wav,val,It bit the dust.,IT TOOK BATTER DID,it bit the dust,it took batter did,0.75,82.8
+euphonia_f06e112ab7c0bff8c5f8466c2ed3d18c.wav,val,Who are you talking about?,FOR OUR TALK ABOUT,who are you talking about,for our talk about,0.8,110.0
+euphonia_f106632dfe603c28c7680f8bf43165e1.wav,val,I don't have to go to work today.,BUT HITHERTO O TWO IT,i do not have to go to work today,but hitherto o two it,1.0,137.3
+euphonia_f10c56d0ffd44aa0893051f6b62580f6.wav,val,Do you know who that is?,DURING THE KNIT,do you know who that is,during the knit,1.0,101.5
+euphonia_f1407fe97172b41a94409f96cf4499da.wav,val,They cut a deal on our climate?,THEY ARE CUT IT O CLEAN IT,they cut a deal on our climate,they are cut it o clean it,0.8571,147.1
+euphonia_f160567253f73cd2664dbc72895df83d.wav,val,Play Kidz Bop,POOR CARTLICKIN,play kidz bop,poor cartlickin,1.0,91.0
+euphonia_f18da0eafb27aca75e15c3c3f5d6b1ec.wav,val,I've always been one of those people that doesn't have a valentine on valentine's day.,THE WHO WILL DEPEND ONE OF THE PAPER NOT HEAT IT FELT IN VERY TINGE,i have always been one of those people that does not have a valentine on valentines day,the who will depend one of the paper not heat it felt in very tinge,0.8235,415.4
+euphonia_f1dc1138d80e4db8131be508aec2379b.wav,val,I had a feeling you were going to ask that.,I HEAR DIP DIDN'T EM WELL POINT,i had a feeling you were going to ask that,i hear dip did not em well point,0.9,174.8
+euphonia_f3a73b1f8e532c123f5b22a9bd3f1c4c.wav,val,You know like I wanna hear about the results if they ever publish them.,WHAT NEED HERE ARE ABOUT TO RESERT IF THE PURPLE OF,you know like i wanna hear about the results if they ever publish them,what need here are about to resert if the purple of,0.8571,359.8
+euphonia_f3b6d3ec8759e985bccadd32ccc05132.wav,val,What time is it?,FOOT TO,what time is it,foot to,1.0,84.7
+euphonia_f488f93691e3e99722980ff6bffe8ad2.wav,val,I so agree.,OH SIR,i so agree,oh sir,1.0,102.9
+euphonia_f4b5b90650320f0eaf0e8c1e9251c63c.wav,val,For the food business.,VERY THEY'VE BIGGER,for the food business,very theyve bigger,1.0,94.0
+euphonia_f4efba2b6602d39775b8f75795dbd375.wav,val,I'm doing well.,I,i am doing well,i,0.75,65.4
+euphonia_f527157603fdc5317801f5a493541652.wav,val,Merrick signed on.,IN IT,merrick signed on,in it,1.0,93.2
+euphonia_f561b8ad978f1632a038b92688b2228c.wav,val,It's time to leave.,HE TURNED TO RE,its time to leave,he turned to re,0.75,103.0
+euphonia_f5a79e4238df13cd4ce361f33371310d.wav,val,What are you doing?,FOR,what are you doing,for,1.0,75.9
+euphonia_f5dbc05089ac67824b46858ca0329d85.wav,val,Why don't you give it to me?,FURTHER TO A BIT THE TATTOO,why do not you give it to me,further to a bit the tattoo,1.0,101.9
+euphonia_f5e7d2259fc7734bedd494b9aae76c69.wav,val,Your reservation at Hotel Monaco ends July 23rd.,YOU ARE T WHEN HUNTING BROUGHT TO,your reservation at hotel monaco ends july 23rd,you are t when hunting brought to,1.0,295.5
+euphonia_f7db096ef8f4ca2a3884e6e36b654f09.wav,val,Directions,THE,directions,the,1.0,55.2
+euphonia_f8199d4d0218910c624319a2546f7221.wav,val,It is alright.,THE TA,it is alright,the ta,1.0,55.7
+euphonia_f8f4f8d6d3540cd089245c420213dec0.wav,val,Can you follow me?,CURB,can you follow me,curb,1.0,74.1
+euphonia_f982bf7e8fa4bb80de84b8413f8bb224.wav,val,A Dodge Charger.,YET,a dodge charger,yet,1.0,100.3
+euphonia_f988953ee8bbd150a539c84dd93df7a1.wav,val,Although my kids are only one and so for now it's kind of easy,OTTOM BOW CUT THE SNU THE TUNK CUT THEIR,although my kids are only one and so for now its kind of easy,ottom bow cut the snu the tunk cut their,1.0,357.9
+euphonia_fa3f3d84a6e34f6f10e09e806dae6611.wav,val,turn off living room light,TO A VERY VEN BLOOD,turn off living room light,to a very ven blood,1.0,119.5
+euphonia_fcab4635555dc94884f6ad0a27f92e44.wav,val,Higgins is rude to them on their arrival.,HER THAT GIRL THAT TURNED HIM THEY WERE UP,higgins is rude to them on their arrival,her that girl that turned him they were up,1.125,202.8
+euphonia_fd17d8ffe06c991eb380388541463008.wav,val,move after,BOTH,move after,both,1.0,74.2
+euphonia_fd43c9e015619bdf74d7685fc6868663.wav,val,volume one,,volume one,,1.0,64.4
+euphonia_fe6a1500f95122815b962e08d225e37b.wav,val,Rialto is wide and long.,AH,rialto is wide and long,ah,1.0,120.1
+euphonia_fe9cdeba9b71f7673360ed5ec702d296.wav,val,next song,THEY,next song,they,1.0,63.7
+euphonia_ff21f8da45d2a76d6c2f9f647c17b594.wav,val,Cut.,,cut,,1.0,37.3

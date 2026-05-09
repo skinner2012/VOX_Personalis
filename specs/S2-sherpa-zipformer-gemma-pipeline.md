@@ -417,10 +417,12 @@ python -c "
 import torch
 from silero_vad import load_silero_vad
 model = load_silero_vad()
-# 1600 samples = 100ms at 16kHz
-chunk = torch.zeros(1600)
-prob = model(chunk, 16000).item()
-print(f'silero-vad OK, silence prob={prob:.3f} (expect near 0)')
+# silero-vad v6 requires exactly 512 samples per call at 16kHz (32ms chunks).
+# Our daemon feeds 1600-sample (100ms) chunks — split into 512-sample sub-chunks
+# and take max() of probabilities.
+chunk_512 = torch.zeros(512)
+prob = model(chunk_512, 16000).item()
+print(f'silero-vad v6 OK, silence prob={prob:.3f} (expect near 0)')
 "
 ```
 
@@ -488,7 +490,7 @@ sherpa-onnx>=1.13.0      # streaming ASR runtime (local inference)
 huggingface-hub>=0.20    # model downloads (likely already transitive)
 aiohttp>=3.9             # HTTP+WebSocket server for daemon
 sounddevice>=0.4         # mic capture for daemon
-silero-vad>=5.0          # neural VAD pre-filter (gates audio before ASR)
+silero-vad>=6.0          # neural VAD pre-filter (gates audio before ASR; v6 requires 512-sample chunks)
 lhotse>=1.20             # manifest format conversion (M1 prep, local-only)
 
 # Cloud-only deps (do NOT add to local pyproject.toml — installed on A10):
@@ -720,10 +722,20 @@ class SileroVADPreFilter:
         self._silence_count = hangover_chunks   # start in idle state
 
     def is_speech(self, chunk_float32) -> bool:
-        """True if chunk contains speech."""
+        """True if chunk contains speech.
+
+        silero-vad v6 requires exactly 512 samples per call at 16kHz.
+        Split the 1600-sample (100ms) chunk into 512-sample sub-chunks
+        and return True if any sub-chunk exceeds the threshold.
+        """
         chunk_t = torch.from_numpy(chunk_float32)
-        prob = self.model(chunk_t, self.SAMPLE_RATE).item()
-        return prob > self.threshold
+        probs = []
+        for i in range(0, len(chunk_t), 512):
+            sub = chunk_t[i : i + 512]
+            if len(sub) < 512:
+                sub = torch.nn.functional.pad(sub, (0, 512 - len(sub)))
+            probs.append(self.model(sub, self.SAMPLE_RATE).item())
+        return max(probs) > self.threshold
 
     def should_forward(self, chunk_float32) -> bool:
         """
@@ -1411,7 +1423,7 @@ sherpa-onnx>=1.13.0      # streaming ASR runtime
 huggingface-hub>=0.20    # model downloads
 aiohttp>=3.9             # HTTP+WebSocket server
 sounddevice>=0.4         # mic capture
-silero-vad>=5.0          # neural VAD pre-filter (gates audio before ASR)
+silero-vad>=6.0          # neural VAD pre-filter (gates audio before ASR; v6 requires 512-sample chunks)
 lhotse>=1.20             # manifest conversion (M1 prep only)
 
 # Already in pyproject.toml:

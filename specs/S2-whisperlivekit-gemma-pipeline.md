@@ -1,3 +1,5 @@
+<!-- pyml disable-num-lines 9999 line-length -->
+
 # VOX Personalis Stage 2 — WhisperLiveKit + Whisper LoRA + Gemma 4 Pipeline
 
 **Status:** ACTIVE\
@@ -40,6 +42,7 @@ ______________________________________________________________________
 - [Error / Rescue Registry (Layer 1)](#error--rescue-registry-layer-1)
 - [Success Criteria (Demo Day)](#success-criteria-demo-day)
 - [Layer 2: AX Integration Stub (Post-demo)](#layer-2-ax-integration-stub-post-demo)
+- [Demo MBP Setup](#demo-mbp-setup)
 - [Pre-Implementation Blockers](#pre-implementation-blockers)
 - [Open Questions / Risks](#open-questions--risks)
 
@@ -66,15 +69,15 @@ ______________________________________________________________________
 
 Three approaches to a "live" Whisper experience were compared:
 
-| Property                        | Whisper VAD-batch (S1 path)                      | Streaming Zipformer (failed)               | **WhisperLiveKit (this spec)**                            |
-| ------------------------------- | ------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------- |
-| Streaming UX                    | After full VAD pause + encoder pass (3–10s)      | 320ms partials mid-utterance               | **600–1500ms commit cadence, partials in flight**         |
-| Architecture                    | Whisper offline                                  | True chunked streaming                     | Whisper offline + AlignAtt sliding-window emission policy |
-| Personalization for Deaf accent | LoRA on whisper-small.en (proven 34.05% val WER) | Full fine-tune (failed at 3.7h scale)      | **Same proven LoRA, merged into base**                    |
-| Inference latency on M4 Pro     | ~real-time but blocks until pause                | ~real-time true-streaming                  | Real-time with sliding window, MLX-accelerated            |
-| Apple Silicon path              | PyTorch / CTranslate2                            | sherpa-onnx                                | **MLX (`mlx-whisper`) → 4–6× speedup**                    |
-| Open source maturity            | Mature                                           | icefall PEFT non-streaming-only (dead end) | **Mature; ships WebSocket frontend**                      |
-| Time to ship                    | n/a (already exists)                             | 5+ days, high risk                         | **~36 hours**                                             |
+| Property                        | Whisper VAD-batch (S1 path)                      | Streaming Zipformer (failed)               | **WhisperLiveKit (this spec)**                             |
+| ------------------------------- | ------------------------------------------------ | ------------------------------------------ | ---------------------------------------------------------- |
+| Streaming UX                    | After full VAD pause + encoder pass (3–10s)      | 320ms partials mid-utterance               | **600–1500ms commit cadence, partials in flight**          |
+| Architecture                    | Whisper offline                                  | True chunked streaming                     | Whisper offline + AlignAtt sliding-window emission policy  |
+| Personalization for Deaf accent | LoRA on whisper-small.en (proven 34.05% val WER) | Full fine-tune (failed at 3.7h scale)      | **Same proven LoRA, merged into base**                     |
+| Inference latency on M4 Pro     | ~real-time but blocks until pause                | ~real-time true-streaming                  | Real-time with sliding window, faster-whisper (CT2) on CPU |
+| Apple Silicon path              | PyTorch / CTranslate2                            | sherpa-onnx                                | **faster-whisper (CT2) — MLX abandoned (M2 postmortem)**   |
+| Open source maturity            | Mature                                           | icefall PEFT non-streaming-only (dead end) | **Mature; ships WebSocket frontend**                       |
+| Time to ship                    | n/a (already exists)                             | 5+ days, high risk                         | **~36 hours**                                              |
 
 WhisperLiveKit uses the AlignAtt streaming policy
 ([Papi et al., Interspeech 2023](https://arxiv.org/abs/2305.11408)): it monitors decoder
@@ -84,16 +87,18 @@ white/committed text on a sub-second cadence. Sub-second word-by-word feedback i
 acceptable for the user's use case (live self-monitoring during speech is tolerant of
 ~1s latency; a Deaf speaker monitoring articulation does not need 320ms cadence).
 
-Two orthogonal CLI choices in `wlk` (verify exact flag names with `wlk --help` in M2):
-the **inference backend** selects which Whisper runtime to use (e.g.,
-`mlx-whisper`, `faster-whisper`); the **streaming policy** selects AlignAtt
-SimulStreaming. We want `mlx-whisper` + AlignAtt. The defaults may already be AlignAtt;
-M2 confirms.
+Two orthogonal CLI choices in `wlk`: the **inference backend** selects which Whisper
+runtime to use (e.g., `mlx-whisper`, `faster-whisper`); the **streaming policy**
+selects between SimulStreaming (AlignAtt, default) and LocalAgreement-2. After M2 we
+ship with `faster-whisper` + LocalAgreement — `mlx-whisper` was eliminated by a
+threading bug under wlk; either streaming policy works on faster-whisper, and
+LocalAgreement was the one verified in M2's smoke test.
 
 **The killer property:** WhisperLiveKit accepts a merged Whisper checkpoint as a regular
 HF model. Our S1-M7 LoRA can be merged once and served with no special handling — we get
-LoRA accuracy and MLX speed simultaneously. (The `--lora-path` flag is documented as
-PyTorch-backend-only and would lose MLX speed; merging is the right move.)
+LoRA accuracy on a thread-safe CT2 runtime. (The `--lora-path` flag is documented as
+PyTorch-backend-only and incurs runtime adapter overhead; merging is the right move
+regardless of backend.)
 
 ______________________________________________________________________
 
@@ -314,16 +319,25 @@ PHASE A — PROVE THE CORE (Sun morning, ~3-4h)
 └────────────────────────┬────────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────────┐
-│ M1 — LoRA merge + MLX conversion (~30 min)                      │
-│   merge_and_unload() → out/whisper_small_en_s1m7_merged/        │
-│   mlx-whisper convert → out/whisper_small_en_s1m7_merged_mlx/   │
-│   Smoke test both formats on 1 val clip.                        │
-│   Gate: both produce identical text.                            │
+│ M1 — LoRA merge + conversions (~45 min)                         │
+│   merge_lora.py: merge_and_unload() →                           │
+│     out/whisper_small_en_s1m7_merged/                           │
+│   ct2-transformers-converter (serving path) →                   │
+│     out/whisper_small_en_s1m7_merged_ct2/                       │
+│   hf_to_mlx.py (batch-eval path) →                              │
+│     out/whisper_small_en_s1m7_merged_mlx/                       │
+│   (custom MLX script — pip mlx-whisper has no convert subcmd;   │
+│    see "LoRA Merge" for key mapping + CT2 preprocessor hack)    │
+│   Smoke test all three formats on 1 val clip.                   │
+│   Gate: CT2 and MLX hypotheses match HF hypothesis (modulo fp16)│
 └────────────────────────┬────────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────────┐
 │ M2 — WhisperLiveKit standalone (~1-2h)                          │
-│   pip install whisperlivekit, run wlk with merged MLX model.    │
+│   Run wlk --backend faster-whisper with merged CT2 model.       │
+│   (mlx-whisper attempted first, abandoned due to thread-local   │
+│    Stream(gpu, 1) bug under wlk's asyncio.to_thread workers —   │
+│    see "M2 Postmortem" in WhisperLiveKit Serving section.)      │
 │   Open browser, mic capture, verify word-by-word UI.            │
 │   Measure first-token latency + commit latency on M4 Pro.       │
 │   Gate: streaming UI works; commit latency < 1500ms p95.        │
@@ -397,28 +411,40 @@ Missing — install before M0:
 
 - **ffmpeg** — required by `whisper`. Install: `brew install ffmpeg`
 - **whisperlivekit** — install in M2 prep: `pip install "whisperlivekit[whisper]"`
-- **mlx-whisper** — install in M1 prep: `pip install mlx-whisper`
+  (this also pulls `faster-whisper` and `ctranslate2`, which are our serving backend)
+- **mlx-whisper** — install in M1 prep: `pip install mlx-whisper` (used by M3/M4
+  batch eval only; not by the wlk server — see M2 postmortem)
+- **python-multipart** — `pip install python-multipart`. Required by wlk's REST
+  endpoints; the wheel does not pull it transitively in 0.2.20.post1.
 
 ### Day 0 commands to run before M0
 
 ```bash
-brew install ffmpeg            # required by openai-whisper
-source venv/bin/activate       # Python 3.11.15
-pip install mlx-whisper        # Apple Silicon backend (also pulls in mlx, mlx-lm)
-pip install "whisperlivekit[whisper]"
+brew install ffmpeg                          # required by openai-whisper
+source venv/bin/activate                     # Python 3.11.15
+pip install mlx-whisper                      # M3/M4 batch eval only
+pip install "whisperlivekit[whisper]"        # also pulls faster-whisper + ctranslate2
+pip install python-multipart                 # required by wlk REST endpoints
 ```
 
 `mlx-whisper` will fail to install on non-macOS — that's fine, we're macOS-only by spec.
 
 **No A10 work for Phase 1.** No new cloud spend.
 
+**Python 3.11 patch (already applied):** `whisperlivekit==0.2.20.post1` contains an
+f-string with a backslash in `cli.py:371` that is a syntax error under Python 3.11
+(allowed only in 3.12+). The line has been patched in-place in the venv to assign the
+escape sequence to a variable before the f-string. No functional change.
+
 ### pyproject.toml updates
 
 ```text
 # Add to [project.dependencies]:
-whisperlivekit>=0.4         # WebSocket streaming server with AlignAtt SimulStreaming
-mlx-whisper>=0.4            # Apple Silicon MLX backend (macOS only)
-silero-vad>=6.2             # already present; reused by WhisperLiveKit --vac
+whisperlivekit==0.2.20.post1  # latest PyPI release; 0.4 series does not exist
+mlx-whisper==0.4.3            # Apple Silicon MLX backend (M3/M4 batch eval only)
+silero-vad>=6.2               # already present; reused by WhisperLiveKit --vac
+python-multipart>=0.0.20      # wlk REST endpoints; not pulled in transitively
+# faster-whisper + ctranslate2 are pulled in transitively by whisperlivekit[whisper]
 ```
 
 ______________________________________________________________________
@@ -464,14 +490,15 @@ ______________________________________________________________________
 ┌────────────────────────────────────────────────────────────────────────┐
 │ WHISPERLIVEKIT  (subprocess, spawned by vox_daemon)                    │
 │                                                                         │
-│  wlk --backend mlx-whisper                                              │
-│      --model out/whisper_small_en_s1m7_merged_mlx                      │
+│  wlk serve --backend faster-whisper                                     │
+│      --model_dir out/whisper_small_en_s1m7_merged_ct2                  │
 │      --host 127.0.0.1 --port 8001                                      │
-│      --no-static                  (we serve our own HTML)              │
+│      --backend-policy localagreement                                    │
+│      --warmup-file ""                                                   │
 │                                                                         │
 │  Internally:                                                            │
-│    Audio buffer (rolling window) → MLX Whisper-small.en (LoRA-merged)  │
-│    AlignAtt emission policy → {committed, buffer} per ~500ms-1s        │
+│    Audio buffer (rolling window) → CT2 Whisper-small.en (LoRA-merged)  │
+│    LocalAgreement-2 emission policy → {committed, buffer} per ~500ms-1s│
 │    VAD-based segmenter → endpoint events                                │
 │                                                                         │
 └────────────────────────────────────────────────────────────────────────┘
@@ -565,73 +592,186 @@ if __name__ == "__main__":
     main()
 ```
 
-After merge, convert to MLX:
+After merge, build **two** target formats:
 
-```bash
-python -m mlx_whisper.convert \
-  --torch-name-or-path ./out/whisper_small_en_s1m7_merged \
-  --mlx-path ./out/whisper_small_en_s1m7_merged_mlx \
-  --dtype float16
-```
+1. **CTranslate2** — for wlk streaming (M2 production path; faster-whisper backend):
+
+   ```bash
+   # ct2-transformers-converter wants preprocessor_config.json; newer transformers
+   # saves it as processor_config.json. Make a copy so the converter is happy.
+   cp out/whisper_small_en_s1m7_merged/processor_config.json \
+      out/whisper_small_en_s1m7_merged/preprocessor_config.json
+
+   ct2-transformers-converter \
+     --model out/whisper_small_en_s1m7_merged \
+     --output_dir out/whisper_small_en_s1m7_merged_ct2 \
+     --quantization float16 \
+     --copy_files tokenizer.json preprocessor_config.json \
+     --force
+   ```
+
+   Output: `out/whisper_small_en_s1m7_merged_ct2/` (~461MB; `model.bin` +
+   `config.json` + `tokenizer.json` + `vocabulary.json` + `preprocessor_config.json`).
+
+1. **MLX** — kept for our own batch eval scripts that drive MLX from the main thread
+   (no wlk threading involvement; see M2 Postmortem). NOT used at serving time.
+
+   ```bash
+   python -m scripts.vox_daemon.hf_to_mlx \
+     --hf-dir ./out/whisper_small_en_s1m7_merged \
+     --mlx-dir ./out/whisper_small_en_s1m7_merged_mlx \
+     --dtype float16
+   ```
 
 **Why `merge_and_unload` is safe:** the merge is a deterministic linear combination
 (`W_merged = W_base + alpha/rank * B @ A`) — produces a model with identical numerical
 behavior to the LoRA-active model under inference, with zero overhead. This is the
 standard PEFT export path.
 
-**mlx-whisper convert flag note:** the actual flag is `--torch-name-or-path` (it accepts
-both HF Hub IDs and local HF Transformers checkpoint dirs); the non-existent `--hf-path`
-flag is a common mistake. Verify with `python -m mlx_whisper.convert --help` after
-install.
+**Why a custom HF→MLX converter (and not `python -m mlx_whisper.convert`):** the
+`mlx-whisper` PyPI package (0.4.3, latest) ships only the runtime; the `convert.py` tool
+lives in the [`ml-explore/mlx-examples`](https://github.com/ml-explore/mlx-examples/blob/main/whisper/convert.py)
+GitHub repo, not in the pip distribution. Even if vendored, that `convert.py` saves the
+weights as `model.safetensors`, but `mlx_whisper.load_models` looks for
+`weights.safetensors` (or `weights.npz`) — so a rename step would still be required.
+Our `hf_to_mlx.py` is ~70 lines, reuses the installed `mlx_whisper.whisper` /
+`torch_whisper` modules as a library, and writes the file with the correct name.
+
+**Conversion key-mapping** (HF Transformers → MLX OpenAI-style), implemented in
+`hf_to_mlx.py`:
+
+```text
+HF state_dict key                              → MLX key
+─────────────────────────────────────────────────────────────────────
+model.encoder.conv1.weight                     → encoder.conv1.weight
+model.encoder.embed_positions.weight           → (dropped — sinusoids regenerated)
+model.encoder.layers.N.self_attn.q_proj        → encoder.blocks.N.attn.query
+model.encoder.layers.N.self_attn.k_proj        → encoder.blocks.N.attn.key
+model.encoder.layers.N.self_attn.v_proj        → encoder.blocks.N.attn.value
+model.encoder.layers.N.self_attn.out_proj      → encoder.blocks.N.attn.out
+model.encoder.layers.N.self_attn_layer_norm    → encoder.blocks.N.attn_ln
+model.encoder.layers.N.fc1                     → encoder.blocks.N.mlp1
+model.encoder.layers.N.fc2                     → encoder.blocks.N.mlp2
+model.encoder.layers.N.final_layer_norm        → encoder.blocks.N.mlp_ln
+model.encoder.layer_norm                       → encoder.ln_post
+model.decoder.embed_tokens.weight              → decoder.token_embedding.weight
+model.decoder.embed_positions.weight           → decoder.positional_embedding
+model.decoder.layers.N.encoder_attn.*          → decoder.blocks.N.cross_attn.*
+model.decoder.layers.N.encoder_attn_layer_norm → decoder.blocks.N.cross_attn_ln
+model.decoder.layer_norm                       → decoder.ln
+proj_out.weight                                → (dropped — tied to token_embedding)
+```
+
+Conv1d weights additionally need an axis swap (`(out, in, kernel)` → `(out, kernel, in)`).
+Output: `weights.safetensors` + `config.json` with the OpenAI-style dim keys
+(`n_mels`, `n_audio_ctx`, `n_audio_state`, …, `n_text_layer`, `model_type: "whisper"`).
 
 ### WhisperLiveKit Serving
 
 WhisperLiveKit is invoked as a subprocess by the daemon. We do NOT use its built-in
-static-file server (we serve our own HTML).
+static-file server (we serve our own HTML). Bind to 127.0.0.1 to prevent external
+access — `--no-static` does not exist in 0.2.20.
 
 ```bash
-wlk --backend mlx-whisper \
-    --model ./out/whisper_small_en_s1m7_merged_mlx \
+wlk serve \
+    --backend faster-whisper \
+    --model_dir ./out/whisper_small_en_s1m7_merged_ct2 \
     --host 127.0.0.1 --port 8001 \
     --min-chunk-size 0.5 \
-    --vac \                    # Silero-VAD-based voice activity controller
-    --vac-chunk-size 0.04
+    --vac-chunk-size 0.04 \
+    --backend-policy localagreement \
+    --warmup-file "" \
+    --pcm-input
 ```
 
-Key flags:
+Key flags (verified against `wlk serve --help` on 0.2.20.post1):
 
-- `--backend mlx-whisper`: Apple Silicon native; 4-6× faster than vanilla PyTorch
-- `--min-chunk-size 0.5`: balance between latency and accuracy. 0.5s gives ~1s commit
-  latency. Day 0 step in M2 will tune this against measured RTF.
-- `--vac`: enable WhisperLiveKit's Voice Activity Controller. **This is Silero VAD
-  internally** — WhisperLiveKit imports the `silero-vad` PyPI package (already in our
-  pyproject) and feeds 32ms (`--vac-chunk-size 0.04` ≈ 512 samples at 16kHz, the v6 API
-  contract) frames to the Silero ONNX model to gate endpoint detection. Required for
-  endpoint events that trigger Gemma Stage B correction. No separate VAD pre-filter
-  needed; we use one Silero VAD instance owned by WhisperLiveKit.
-- **No `--lora-path`**: WhisperLiveKit's `--lora-path` flag is PyTorch-backend-only and
-  would lose MLX speed. We pass a merged model via `--model` instead and simply don't
-  pass `--lora-path` at all.
-- `--no-static` is **assumed** but not verified — if it doesn't exist, suppress the
-  bundled UI by binding port 8001 to localhost only and ignoring the served HTML.
-- **M2 verification step:** run `wlk --help` and confirm exact backend names, flag
-  spellings, and the WS endpoint path (this spec assumes `/asr`; upstream may use `/`
-  or `/ws`). The flag list above is from upstream docs; expect minor drift.
+- `--backend faster-whisper`: CTranslate2 runtime (C++, thread-safe). Reliable on M4
+  Pro CPU at ~0.1× RTF for small.en — plenty fast for live streaming. We tried
+  `mlx-whisper` first for the GPU speedup; it failed in wlk due to a thread-locality
+  bug in MLX's runtime — see the **M2 Postmortem** below.
+- `--model_dir`: path to a local Whisper checkpoint directory. **Not `--model`** — that
+  flag accepts only a size string (e.g. `small.en`); `--model_dir` overrides it for
+  local paths.
+- `--backend-policy localagreement`: the LocalAgreement-2 emission policy from
+  whisper_streaming. wlk 0.2.20's default is `simulstreaming` (AlignAtt). Both work
+  with faster-whisper; LocalAgreement was the verified path in M2.
+- `--vac-chunk-size 0.04`: VAC is **enabled by default** (Silero VAD internally, via
+  onnxruntime). No `--vac` flag needed — pass `--no-vac` to disable. WhisperLiveKit
+  feeds 32ms frames (`0.04s ≈ 512 samples at 16kHz`) to the Silero ONNX model for
+  endpoint detection. Required for the endpoint events that trigger Gemma Stage B.
+- `--warmup-file ""`: explicit empty to suppress wlk's default warmup-file fetch
+  (which falls back to a missing path under our install).
+- `--pcm-input`: required for the included `whisperlivekit.test_client` smoke test,
+  which streams raw 16kHz mono PCM. The Chrome frontend will use Opus-over-WebRTC
+  instead and won't need this flag — M5 will revisit.
+- **No `--lora-path`**: LoRA is merged into the base weights before serving.
+- **No `--no-static`**: flag does not exist. Localhost-only binding (`--host 127.0.0.1`)
+  is sufficient to isolate WhisperLiveKit's bundled UI from external access.
 
-**WebSocket protocol — from upstream README; verify against installed version in M2.**
+#### M2 Postmortem — Why mlx-whisper is unusable inside wlk
 
-Consumed by daemon, not browser:
+Despite mlx-whisper being the documented "Apple Silicon native, 4-6× faster" backend,
+**mlx-whisper running under wlk's `AudioProcessor` always raises**
+`RuntimeError: There is no Stream(gpu, 1) in current thread.`
+
+Root cause:
+
+- wlk's `AudioProcessor.transcription_processor` calls
+  `await asyncio.to_thread(self.transcription.process_iter)`
+  ([audio_processor.py:370](../venv/lib/python3.11/site-packages/whisperlivekit/audio_processor.py#L370)),
+  dispatching each transcription onto a Python `ThreadPoolExecutor` worker thread.
+- MLX's runtime stores `Stream(gpu, 1)` as **thread-local state**, lazily created on
+  the thread where MLX is first used. Worker threads from `to_thread` never have this
+  stream — every MLX call raises.
+- Both wlk backend policies hit the same wall, at different call sites:
+  - LocalAgreement → `mlx_whisper/decoding.py:600` (`mx.async_eval`)
+  - SimulStreaming → `simul_whisper/simul_whisper.py:265`
+    (`torch.as_tensor(mlx_encoder_feature)` via dlpack bridge)
+
+Things tried and discarded (all reverted; no live patches remain in venv):
+
+1. **wlk + mlx-whisper + default (SimulStreaming) policy.**
+   Fails at the dlpack bridge — same `Stream(gpu, 1)` error.
+1. **Wrap `MLXWhisper.transcribe` in `with mx.stream(mx.gpu):`** (LocalAgreement path).
+   `mx.stream(gpu)` selects default `Stream(gpu, 0)`; the internal `Stream(gpu, 1)`
+   used by `async_eval` is still missing on the worker thread.
+1. **Replace `mx.async_eval` with sync `mx.eval`** in `mlx_whisper/decoding.py`.
+   Sync `mx.eval` also hard-requires `Stream(gpu, 1)` on the calling thread.
+1. **Force `--backend-policy localagreement`** to dodge the SimulStreaming dlpack path.
+   Same `Stream(gpu, 1)` error from a different call site.
+
+A workable MLX fix would need either (a) a wlk patch that pins transcription to the
+main event-loop thread (defeats wlk's concurrency model) or (b) an MLX patch that
+makes streams global / thread-shared (upstream change). Neither is in scope for a
+Monday demo. We accept the perf loss and ship faster-whisper.
+
+`mlx-whisper` is still used in our own **batch eval** path (M3 / M4), where we drive
+the model on the main thread and the threading bug doesn't trigger. The MLX
+checkpoint at `out/whisper_small_en_s1m7_merged_mlx/` is retained for that purpose.
+
+**WebSocket protocol — verified against `timed_objects.py` in 0.2.20.post1.**
+
+Consumed by daemon, not browser. Full `FrontData.to_dict()` shape:
 
 ```json
 {
+  "status": "",
   "lines": [
     {"speaker": 1, "text": "I want to talk about Kubernetes networking",
-     "start": 0.0, "end": 2.4}
+     "start": "0.00", "end": "2.40"}
   ],
-  "buffer_transcription": "",
-  "remaining_time_transcription": 0.0
+  "buffer_transcription": "networking",
+  "buffer_diarization": "",
+  "buffer_translation": "",
+  "remaining_time_transcription": 0.0,
+  "remaining_time_diarization": 0.0
 }
 ```
+
+Notes: `start`/`end` are formatted strings (e.g. `"2.40"`), not floats. `speaker` is 1
+when diarization is off (mapped from internal -1). `buffer_transcription` is the
+in-flight partial hypothesis (what the spec called `buffer_text`).
 
 The daemon detects "line just committed" by diffing successive `lines` arrays. Open
 Question 2 covers the residual risk that the diff signal is unreliable (e.g., line text
@@ -809,8 +949,9 @@ scripts/
     cli.py                 # Daemon CLI (M5)
     proxy.py               # Browser ↔ WhisperLiveKit ↔ Gemma proxy (M4)
     gemma.py               # Gemma 4 subprocess wrapper, validated Day 0
-    merge_lora.py          # M1: merge S1-M7 LoRA → HF
-    m0_sanity.py           # M0: load LoRA, transcribe 1 clip
+    merge_lora.py          # M1: merge S1-M7 LoRA → HF Transformers checkpoint
+    hf_to_mlx.py           # M1: convert HF Transformers checkpoint → MLX format
+    lora_sanity.py         # M0: load LoRA, transcribe 1 clip (sanity gate)
     eval_merged.py         # M3: parity-check merged-model WER vs S1-M7
     eval_offline.py        # M4: Stage A + Stage B WER over val split
     static/
@@ -844,7 +985,10 @@ ______________________________________________________________________
 
 ### M3: Merged-model parity check
 
-Goal: confirm `merge_and_unload` + MLX conversion didn't change inference numerics.
+Goal: confirm `merge_and_unload` didn't change inference numerics. We evaluate the
+**HF merged checkpoint** here (not MLX or CT2): driving the HF model on the main
+thread is the most direct check that the LoRA bake-in is correct. M4's offline eval
+covers the format-conversion-induced drift separately.
 
 **Implementation note:** the existing `scripts/baseline_eval/cli.py` only accepts a Whisper
 size string (`--model_size {tiny,base,small,medium,large}.en`) — it cannot load a
@@ -941,54 +1085,232 @@ no daemon changes.
 
 ______________________________________________________________________
 
+## Demo MBP Setup
+
+Step-by-step to bring up the streaming pipeline on a clean MBP (the actual demo
+machine on 2026-05-11). Source machine = the Mac mini where M0–M2 were built.
+
+### 1. OS prerequisites on MBP
+
+```bash
+# Homebrew (skip if already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# ffmpeg — required by whisper / openai-whisper / faster-whisper
+brew install ffmpeg
+
+# Python 3.11 — wlk 0.2.20 has a Python 3.12-only f-string on cli.py:371; we ship
+# the in-place patch via this repo's `setup_demo.sh`, but only Python 3.11 has been
+# validated end-to-end. Apple ships 3.13 on recent macOS; install 3.11 explicitly:
+brew install python@3.11
+```
+
+### 2. Clone repo + create venv on MBP
+
+```bash
+git clone <repo-url> ~/Projects/VOX_Personalis
+cd ~/Projects/VOX_Personalis
+/opt/homebrew/opt/python@3.11/bin/python3.11 -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+pip install mlx-whisper                  # for batch eval (M3/M4)
+pip install "whisperlivekit[whisper]"    # pulls faster-whisper + ctranslate2
+pip install python-multipart             # wlk REST endpoints
+```
+
+### 3. Apply the wlk Python 3.11 f-string patch
+
+`whisperlivekit==0.2.20.post1`'s `cli.py:371` contains an f-string with a backslash
+that 3.11 rejects. Patch in place:
+
+```bash
+python - <<'PY'
+import re, pathlib, whisperlivekit
+p = pathlib.Path(whisperlivekit.__file__).parent / "cli.py"
+src = p.read_text()
+bad = 'print(f"  ffmpeg:       {\'found\' if _check_ffmpeg() else \'\\033[31mNOT FOUND\\033[0m (required)\'}")'
+good = (
+    '_ffmpeg_status = "found" if _check_ffmpeg() else "\\033[31mNOT FOUND\\033[0m (required)"\n'
+    '    print(f"  ffmpeg:       {_ffmpeg_status}")'
+)
+if bad in src:
+    p.write_text(src.replace(bad, good))
+    print("patched")
+else:
+    print("already patched or upstream changed; inspect cli.py:371")
+PY
+```
+
+### 4. Get the merged model onto the MBP
+
+Two options — pick whichever is faster on the day. We do NOT commit the binaries
+to git (too large; the LoRA adapter at
+`out/feedback_finetune/batch_20260317_110057/checkpoint/` is already committed
+and is the source of truth for accuracy).
+
+**Option A — rsync from Mac mini** (fastest, ~1 min on LAN):
+
+```bash
+# CT2 checkpoint (serving — required for M2 / M5)
+rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/out/whisper_small_en_s1m7_merged_ct2 \
+     ~/Projects/VOX_Personalis/out/
+
+# Merged HF checkpoint (used by M3 eval_merged.py)
+rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/out/whisper_small_en_s1m7_merged \
+     ~/Projects/VOX_Personalis/out/
+
+# MLX checkpoint (used by M4 eval_offline.py)
+rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/out/whisper_small_en_s1m7_merged_mlx \
+     ~/Projects/VOX_Personalis/out/
+```
+
+**Option B — rebuild on the MBP from the committed LoRA adapter**
+(~3 min on M4 Pro; uses only files already in the repo):
+
+```bash
+source venv/bin/activate
+
+# 1. Merge LoRA into base whisper-small.en → HF Transformers format
+python -m scripts.vox_daemon.merge_lora
+# Reads: out/feedback_finetune/batch_20260317_110057/checkpoint/  (LoRA, 7.1MB, in git)
+# Writes: out/whisper_small_en_s1m7_merged/                       (HF, ~950MB)
+
+# 2. Convert HF → CT2 for the wlk serving path
+cp out/whisper_small_en_s1m7_merged/processor_config.json \
+   out/whisper_small_en_s1m7_merged/preprocessor_config.json
+ct2-transformers-converter \
+  --model out/whisper_small_en_s1m7_merged \
+  --output_dir out/whisper_small_en_s1m7_merged_ct2 \
+  --quantization float16 \
+  --copy_files tokenizer.json preprocessor_config.json \
+  --force
+# Writes: out/whisper_small_en_s1m7_merged_ct2/                   (CT2, ~461MB)
+
+# 3. Convert HF → MLX for batch eval (M3/M4)
+python -m scripts.vox_daemon.hf_to_mlx \
+  --hf-dir ./out/whisper_small_en_s1m7_merged \
+  --mlx-dir ./out/whisper_small_en_s1m7_merged_mlx \
+  --dtype float16
+# Writes: out/whisper_small_en_s1m7_merged_mlx/                   (MLX, ~481MB)
+```
+
+Both options produce bit-identical outputs (the merge is a deterministic linear
+combo; CT2 quantization is deterministic given the same input).
+
+### 5. Transfer Gemma GGUF (~17GB)
+
+If the demo MBP doesn't already have `~/llama.cpp/build/bin/llama-cli` + the GGUF,
+copy them over. The GGUF is the slowest single transfer — run it overnight:
+
+```bash
+# llama.cpp binary (assumes the source MBP has a working build)
+rsync -avzP <mac-mini>:~/llama.cpp ~/llama.cpp
+
+# Gemma 4 GGUF
+mkdir -p ~/Projects/VOX_Personalis/models/gemma
+rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/models/gemma/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf \
+     ~/Projects/VOX_Personalis/models/gemma/
+```
+
+### 6. End-to-end smoke test on MBP
+
+```bash
+source venv/bin/activate
+
+# Terminal 1: start wlk
+wlk serve \
+  --backend faster-whisper \
+  --model_dir ./out/whisper_small_en_s1m7_merged_ct2 \
+  --backend-policy localagreement \
+  --host 127.0.0.1 --port 8001 \
+  --min-chunk-size 0.5 \
+  --warmup-file "" \
+  --pcm-input \
+  -l INFO
+
+# Terminal 2: drive it with a known clip
+python -m whisperlivekit.test_client \
+  --url ws://localhost:8001/asr \
+  --speed 1 \
+  ~/Downloads/takeout-E407/euphonia_002f4f2d5ad6ecd94202d4ef92719c02.wav
+```
+
+Expected client output:
+
+```text
+[0:00:00.00 -> 0:00:03.38] can you play some music yes
+[buffer] can you play some music yes
+--- 90 responses | 49 updates | 3.4s audio ---
+```
+
+If the output text appears, **the MBP demo path is ready**. Subsequent milestones
+(M3 WER parity, M4 Gemma Stage B, M5 daemon + Chrome) build on top of this.
+
+______________________________________________________________________
+
 ## Pre-Implementation Blockers
 
 1. **[Done — M0]** Identify which `out/feedback_finetune/batch_<id>/` corresponds to S1-M7
    (val WER 34.05%). → `batch_20260317_110057/` (verified `metrics.json`).
 1. **[Done — M0]** Transfer checkpoint dir from MBP → Mac mini via rsync. → checkpoint
    present locally.
-1. **[Open — M2]** WhisperLiveKit installs cleanly on M4 Pro with MLX backend (pip
-   install + smoke test).
-1. **[Open — M1]** `mlx-whisper.convert` accepts a HF Whisper checkpoint (one-shot
-   convert + load test).
-1. **[Open — M2]** WhisperLiveKit's CLI flags + WebSocket protocol match the spec
-   assumptions (run `wlk --help`, log a connection's stream, confirm `lines`/`buffer`
-   field names + WS endpoint path before M4 proxy work begins).
+1. **[Done — Day 0]** WhisperLiveKit installs cleanly on M4 Pro with MLX backend.
+   → `whisperlivekit==0.2.20.post1` + `mlx-whisper==0.4.3` installed. Python 3.11
+   f-string patch applied in-place to `cli.py:371`. `wlk --help` works.
+1. **[Resolved — Day 0]** `python -m mlx_whisper.convert` does NOT exist in the pip
+   package (0.4.3); the conversion tool is GitHub-only (`ml-explore/mlx-examples`).
+   Replaced with a custom `scripts/vox_daemon/hf_to_mlx.py` script. Final HF→MLX
+   numerical parity is verified by M3's WER gate.
+1. **[Done — Day 0]** WhisperLiveKit's CLI flags + WebSocket protocol verified.
+   → WS endpoint: `/asr`. Flags: `--model_dir` (not `--model`),
+   `--backend-policy simulstreaming` for AlignAtt, VAC on by default.
+   Protocol: `lines[].{speaker, text, start, end}` + `buffer_transcription`
+   (string). See "WhisperLiveKit Serving" section.
+1. **[Resolved — M2]** mlx-whisper backend fails inside wlk with
+   `RuntimeError: There is no Stream(gpu, 1) in current thread` because wlk runs
+   transcription in `asyncio.to_thread` workers and MLX streams are thread-local.
+   Resolution: pivot serving to `--backend faster-whisper` with a CTranslate2 build
+   of the merged checkpoint. MLX checkpoint is retained for batch eval only. Full
+   postmortem in the "WhisperLiveKit Serving" section.
+1. **[Resolved — M2]** `ct2-transformers-converter` requires `preprocessor_config.json`,
+   but newer `transformers` saves the processor as `processor_config.json`. We copy
+   the file before invoking the converter; see "LoRA Merge".
+1. **[Done — M2]** `python-multipart` is required by wlk's REST endpoints. It was
+   missing in the default install path; installed manually and added to the demo
+   setup checklist below.
 
 ______________________________________________________________________
 
 ## Open Questions / Risks
 
-1. **mlx-whisper merged-LoRA support is empirically untested.** The `merge_and_unload`
-   path produces a regular Whisper checkpoint, so in theory it should convert cleanly.
-   Verify in M1.
+1. **mlx-whisper merged-LoRA support — resolved (negative).** The `merge_and_unload`
+   path produces a regular HF Whisper checkpoint, and our `hf_to_mlx.py` script
+   converts it to MLX format successfully. But mlx-whisper **cannot be used as wlk's
+   serving backend** due to MLX's thread-local Stream(gpu, 1) requirement — see the
+   "M2 Postmortem" in the WhisperLiveKit Serving section. Serving runs on
+   `faster-whisper` + a CTranslate2 build of the merged checkpoint. The MLX
+   checkpoint is retained for M3/M4 batch eval where the main-thread driver pattern
+   sidesteps the bug.
 
-1. **WhisperLiveKit's commit event format.** The frontend code shows `lines[]` arrays,
-   but the exact "new line just committed" diff signal isn't documented — we'll have
-   to read the protocol stream in M2 to confirm reliable detection.
+1. **WhisperLiveKit's commit event format — resolved.** Protocol verified from source:
+   `lines[]` grows as utterances commit; daemon diffs successive `lines` arrays to detect
+   new committed lines. `buffer_transcription` is the in-flight partial. `start`/`end`
+   are formatted strings, not floats.
 
-1. **VAD/endpoint tuning.** WhisperLiveKit's `--vac` defaults may not match the user's
-   speech patterns (Deaf speech often has different prosody). M5 stability testing tunes
-   `--vac-chunk-size` and related flags.
+1. **VAD/endpoint tuning.** WhisperLiveKit's VAC is on by default (Silero ONNX).
+   Default `--vac-chunk-size` may not match the user's speech patterns (Deaf speech often
+   has different prosody). M5 stability testing tunes this flag.
 
 1. **Gemma + Whisper Metal contention on MBP.** Both use Metal. If concurrent Whisper
    inference + Gemma generation contends, we may see Whisper stalling during Gemma's
    ~400ms generation. Mitigation: serialize, or run Gemma on CPU only (`-ngl 0` in
    llama.cpp). M5 measures.
 
-1. **Final-day move from Mac mini → MBP.** All artifacts need to be on the MBP by
-   Sunday evening for a full integration test on the demo machine. Concrete checklist:
+1. **Final-day move from Mac mini → MBP.** Detailed checklist in the
+   **"Demo MBP Setup"** section below — covers OS prereqs, Python env, package
+   install, model-artifact transfer (rsync vs HF Hub fallback), and the smoke-test
+   command to confirm end-to-end before the demo.
 
-   ```bash
-   # From MBP, pulling from Mac mini (replace with Mac mini's hostname/IP):
-   rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/out/whisper_small_en_s1m7_merged_mlx \
-        ~/Projects/VOX_Personalis/out/
-   rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/scripts/vox_daemon/ \
-        ~/Projects/VOX_Personalis/scripts/vox_daemon/
-   # Gemma GGUF (~17GB) — copy once if not already on MBP.
-   # Run `git pull` on MBP for committed code.
-   ```
-
-1. **WhisperLiveKit version churn.** The project moves fast; record the installed
-   version (`pip show whisperlivekit` after install) and pin in `pyproject.toml`.
-   Blocker #5 covers the actual flag/protocol verification.
+1. **WhisperLiveKit version — resolved.** Installed and pinned: `==0.2.20.post1` (latest
+   PyPI release; the `>=0.4` requirement in the original spec was incorrect — the package
+   follows a 0.2.x version scheme). Pinned in `pyproject.toml`.

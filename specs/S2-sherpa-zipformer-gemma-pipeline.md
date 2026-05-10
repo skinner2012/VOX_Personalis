@@ -1,8 +1,92 @@
 # VOX Personalis Stage 2 — Sherpa-ONNX + Streaming Zipformer + Gemma 4 Pipeline
 
-**Status:** ACTIVE\
+**Status:** SUPERSEDED (2026-05-09)\
 **Branch:** main\
-**Supersedes:** S1-M7 (Whisper fine-tuned baseline, 34.05% val WER), S2-moonshine-gemma-pipeline.md (Moonshine v2 path — abandoned because HF Transformers Moonshine does not expose true streaming inference)
+**Superseded by:** [S2-whisperlivekit-gemma-pipeline.md](S2-whisperlivekit-gemma-pipeline.md)\
+**Originally supersedes:** S1-M7 (Whisper fine-tuned baseline, 34.05% val WER), S2-moonshine-gemma-pipeline.md (Moonshine v2 path — abandoned because HF Transformers Moonshine does not expose true streaming inference)
+
+______________________________________________________________________
+
+## Postmortem (2026-05-09)
+
+This spec was attempted end-to-end through M1. The streaming Zipformer fine-tune produced an
+unusable model. The root cause is a mismatch between icefall's recipe defaults and our
+dataset scale, compounded by a structural fact missed during planning: icefall has no
+streaming-AND-PEFT recipe.
+
+### What happened
+
+| Milestone                                                              | Outcome                                                                                               | Result file                                                                                       |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| M0: Stock Zipformer baseline WER on 361 val clips                      | **100.72% val WER** (random output on Deaf accent)                                                    | [results/S2-M0_zipformer_baseline/metrics.json](../results/S2-M0_zipformer_baseline/metrics.json) |
+| M1: Cloud fine-tune on Lambda Labs A10 (Candidate B, 66M, LibriSpeech) | Training appeared successful: val loss 1.71 → 0.05 in 20 epochs                                       | (cloud-only artifact, not committed)                                                              |
+| M1: ONNX export + sherpa-onnx eval on val set                          | **97.90% val WER — alignment collapse** (model emits only first BPE token per utterance, then blanks) | (ephemeral, not committed)                                                                        |
+
+### Root cause: dataset scale ≪ recipe assumption
+
+icefall's `egs/librispeech/ASR/zipformer/finetune.py` defaults are tuned for ~100–1000h
+datasets. We ran with 3.7h. Concretely:
+
+- `--warm-step 2000` × `--max-duration 300` × 3.7h ≈ ~250 total optimizer steps. The LR
+  schedule never finished warmup; optimizer ran at suboptimal LR throughout.
+- `--enable-musan 0` (we lacked MUSAN on the cloud) removed regularization that prevents
+  the joiner from collapsing to "blank everywhere".
+- `--use-mux 0` (no LibriSpeech to mux against on cloud) removed the safety net the
+  upstream icefall doc explicitly warns about.
+
+The result: `pruned_rnnt_loss` minimized cleanly (low val loss) by assigning probability
+mass to blanks across all positions. Greedy/beam decoding then emits only the first BPE
+token (where the encoder's frame-1 representation is strongest) and blanks thereafter.
+This is the canonical small-data RNN-T failure mode, well-documented in the literature
+(NeMo issue #14140, icefall discussion #1580).
+
+### The structural fact missed during planning
+
+icefall ships three Zipformer recipes:
+
+| Recipe                                       | Streaming export? | PEFT?                    |
+| -------------------------------------------- | ----------------- | ------------------------ |
+| `egs/librispeech/ASR/zipformer/` (used here) | Yes               | No (full fine-tune only) |
+| `egs/librispeech/ASR/zipformer_lora/`        | **No**            | Yes                      |
+| `egs/librispeech/ASR/zipformer_adapter/`     | **No**            | Yes                      |
+
+There is no streaming + PEFT combination in icefall. The original spec quoted the upstream
+maintainer's note that `zipformer_adapter` is non-streaming and chose full fine-tune as
+the documented streaming path — but did not validate that 3.7h was sufficient for full
+fine-tune of a 66M streaming RNN-T. Literature evidence (Tomanek 2023 Project Euphonia,
+Takahashi 2025 Interspeech SAP winner) sets the practical threshold around 100h+.
+
+### Lessons
+
+1. **Validate dataset-vs-recipe scale before committing cloud time.** `warm_step=2000` on
+   3.7h is a checkable red flag.
+1. **Streaming + PEFT requires picking a model family that supports both** — Whisper +
+   SimulStreaming, NeMo cache-aware Conformer + adapter, or NVIDIA nemotron-speech-streaming.
+   icefall is not that family.
+1. **Low val loss can hide alignment collapse** in transducer models. Always smoke-test
+   inference output (not just metrics) before committing to a full export pipeline.
+
+### Artifacts retained (still useful)
+
+| Path                                                                      | Reason kept                                                                                                                      |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| [scripts/zipformer_eval/](../scripts/zipformer_eval/)                     | Generic Zipformer WER eval module — works on any sherpa-onnx Zipformer ONNX, reusable for future attempts                        |
+| [scripts/zipformer_finetune/](../scripts/zipformer_finetune/)             | Lhotse manifest converter + A10 bootstrap script — validated end-to-end on the A10, reusable if revisited with proper data scale |
+| [results/S2-M0_zipformer_baseline/](../results/S2-M0_zipformer_baseline/) | 100.72% stock baseline result on the S1 frozen val split                                                                         |
+| `out/lhotse_manifests/` (gitignored)                                      | Pre-computed 16kHz fbank features + cuts for 3,005 train + 361 dev clips                                                         |
+| `~/Downloads/voice_data_v2.tar.gz` (1.5 GB, local only)                   | Tarball ready for re-upload to A10 if streaming Zipformer is revisited                                                           |
+
+### Pivot
+
+The replacement pipeline reuses our existing [S1-M7 feedback-fine-tuned Whisper LoRA
+checkpoint (34.05% val WER)](../results/M7_feedback_finetune/) served via WhisperLiveKit's
+SimulStreaming/AlignAtt path for sub-second word-by-word display, paired with Gemma 4
+Stage B correction. See the live spec linked at the top.
+
+The remainder of this document is preserved as the original ACTIVE spec for historical
+record.
+
+______________________________________________________________________
 
 ______________________________________________________________________
 

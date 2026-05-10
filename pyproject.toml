@@ -84,7 +84,7 @@ follow_untyped_imports = false
 
 # S2 inference and data libs — no type stubs available
 [[tool.mypy.overrides]]
-module = ["sherpa_onnx", "soundfile", "librosa", "pandas", "lhotse"]
+module = ["sherpa_onnx", "soundfile", "librosa", "pandas", "lhotse", "lhotse.*"]
 ignore_missing_imports = true
 
 # Cross-package imports within scripts/ — mypy_path="scripts" causes false negatives

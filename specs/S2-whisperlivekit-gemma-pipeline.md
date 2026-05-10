@@ -76,13 +76,19 @@ Three approaches to a "live" Whisper experience were compared:
 | Open source maturity            | Mature                                           | icefall PEFT non-streaming-only (dead end) | **Mature; ships WebSocket frontend**                      |
 | Time to ship                    | n/a (already exists)                             | 5+ days, high risk                         | **~36 hours**                                             |
 
-WhisperLiveKit's `--backend simulstreaming` uses the AlignAtt policy
+WhisperLiveKit uses the AlignAtt streaming policy
 ([Papi et al., Interspeech 2023](https://arxiv.org/abs/2305.11408)): it monitors decoder
 cross-attention to identify when each token is "stable enough" to commit, and holds
 unstable tokens in a "buffer" tier. The user sees grey/italic in-flight text turning into
 white/committed text on a sub-second cadence. Sub-second word-by-word feedback is
 acceptable for the user's use case (live self-monitoring during speech is tolerant of
 ~1s latency; a Deaf speaker monitoring articulation does not need 320ms cadence).
+
+Two orthogonal CLI choices in `wlk` (verify exact flag names with `wlk --help` in M2):
+the **inference backend** selects which Whisper runtime to use (e.g.,
+`mlx-whisper`, `faster-whisper`); the **streaming policy** selects AlignAtt
+SimulStreaming. We want `mlx-whisper` + AlignAtt. The defaults may already be AlignAtt;
+M2 confirms.
 
 **The killer property:** WhisperLiveKit accepts a merged Whisper checkpoint as a regular
 HF model. Our S1-M7 LoRA can be merged once and served with no special handling — we get
@@ -253,9 +259,10 @@ The S1-M7 number was measured with `create_normalizer(version=2)` from
 `scripts/baseline_eval/normalization.py`. All Stage 2 evaluation must use the same
 normalization for apples-to-apples comparison.
 
-**Checkpoint location:** `out/feedback_finetune/batch_<timestamp>/checkpoint/` on the
-MBP. Must be transferred to the development Mac mini for M1 prep work. The user will
-identify the correct batch (the one whose `metrics.json` shows 34.05% val WER).
+**Checkpoint location:** `out/feedback_finetune/batch_20260317_110057/checkpoint/` —
+already transferred from MBP to Mac mini. Verified: `metrics.json` shows
+`finetuned_wer: 0.34053156146179403` on the 361-clip val split. Adapter format: PEFT
+LoRA (`adapter_config.json` + `adapter_model.safetensors`, 7.1 MB).
 
 ______________________________________________________________________
 
@@ -287,19 +294,23 @@ ______________________________________________________________________
 
 - **Phase A:** Prove the core — checkpoint transfer, LoRA merge, WhisperLiveKit smoke test (M0–M2)
 - **Phase B:** Ship the demo — Chrome live caption display + Gemma Stage B (M3–M5)
-- **Phase C:** Production integration — AX injection into Live Captions (M6–M7, post-demo)
+- **Phase C:** Production integration — AX injection into Live Captions (M7–M8, post-demo)
 
 ______________________________________________________________________
 
 ## Milestone Sequence
 
 ```text
-PHASE A — PROVE THE CORE (Sat afternoon, ~3-4h)
+PHASE A — PROVE THE CORE (Sun morning, ~3-4h)
 ┌─────────────────────────────────────────────────────────────────┐
-│ M0 — Checkpoint transfer + sanity check (~30 min)               │
-│   rsync S1-M7 LoRA from MBP → Mac mini.                         │
+│ M0 — Checkpoint sanity check (~15 min)                          │
+│   Checkpoint at out/feedback_finetune/                          │
+│     batch_20260317_110057/checkpoint/ (LoRA adapter, 7.1MB).    │
+│   Base model: openai/whisper-small.en (HF Hub).                 │
 │   Load via PeftModel.from_pretrained, transcribe 1 val clip.    │
-│   Gate: transcript matches reference (sanity, not WER).         │
+│   Snippet — see "M0 sanity stub" below.                         │
+│   Gate: transcript reasonably matches reference (sanity check;  │
+│         not WER-blocking, just verifies LoRA loads + decodes).  │
 └────────────────────────┬────────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────────┐
@@ -321,9 +332,11 @@ PHASE A — PROVE THE CORE (Sat afternoon, ~3-4h)
 
 PHASE B — SHIP THE DEMO (Sun, ~6-8h)
 ┌────────────────────────▼────────────────────────────────────────┐
-│ M3 — WER eval parity check (~30 min)                            │
-│   Reuse scripts/baseline_eval/ on the merged model.             │
-│   361 val clips, create_normalizer(version=2).                  │
+│ M3 — WER eval parity check (~1h)                                │
+│   Write scripts/vox_daemon/eval_merged.py (baseline_eval        │
+│   doesn't accept custom checkpoints). Iterate val split (361)   │
+│   from out/dataset_v1/20260206-142756/dataset_v1_manifest.csv,  │
+│   apply path remap, normalize with create_normalizer(version=2).│
 │   Gate: WER within ±0.5% of S1-M7's 34.05% (proves merge        │
 │   + format conversion didn't degrade anything).                 │
 │   Output: results/S2-M3_whisper_merged_baseline/                │
@@ -367,18 +380,35 @@ ______________________________________________________________________
 
 ## Pre-work: Day 0 Checklist
 
-Day 0 work for the prior spec (sherpa-onnx install, llama.cpp build with Gemma 4 support,
-silero-vad install) was completed on 2026-05-09 and is **already valid for this spec**.
-The only new dependencies are:
+### Install state on Mac mini (verified 2026-05-10)
+
+Already present:
+
+- **Python 3.11.15 venv** at `./venv` — activate with `source venv/bin/activate`
+- **`peft`, `transformers`, `torch`** — from S1, declared in
+  [pyproject.toml](../pyproject.toml)
+- **`silero-vad` 6.2.1** — reused as WhisperLiveKit's `--vac` Voice Activity Controller
+  (v6 API)
+- **llama.cpp + Gemma 4 GGUF** — `~/llama.cpp/build/bin/llama-cli` +
+  `models/gemma/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf`
+- **openai-whisper** Python package — installed from S1
+
+Missing — install before M0:
+
+- **ffmpeg** — required by `whisper`. Install: `brew install ffmpeg`
+- **whisperlivekit** — install in M2 prep: `pip install "whisperlivekit[whisper]"`
+- **mlx-whisper** — install in M1 prep: `pip install mlx-whisper`
+
+### Day 0 commands to run before M0
 
 ```bash
-# In the existing venv at /Users/skinnercheng/Projects/VOX_Personalis/venv:
+brew install ffmpeg            # required by openai-whisper
+source venv/bin/activate       # Python 3.11.15
+pip install mlx-whisper        # Apple Silicon backend (also pulls in mlx, mlx-lm)
 pip install "whisperlivekit[whisper]"
-pip install mlx-whisper        # Apple Silicon backend
 ```
 
-Plus pre-existing project deps (`peft`, `transformers`, `torch`) — already declared in
-[pyproject.toml](../pyproject.toml).
+`mlx-whisper` will fail to install on non-macOS — that's fine, we're macOS-only by spec.
 
 **No A10 work for Phase 1.** No new cloud spend.
 
@@ -388,10 +418,8 @@ Plus pre-existing project deps (`peft`, `transformers`, `torch`) — already dec
 # Add to [project.dependencies]:
 whisperlivekit>=0.4         # WebSocket streaming server with AlignAtt SimulStreaming
 mlx-whisper>=0.4            # Apple Silicon MLX backend (macOS only)
+silero-vad>=6.2             # already present; reused by WhisperLiveKit --vac
 ```
-
-`mlx-whisper` will fail to install on non-macOS — that's fine, we're macOS-only by spec.
-If we ever need cross-platform local dev, mark it with a platform marker in pyproject.
 
 ______________________________________________________________________
 
@@ -460,7 +488,40 @@ ______________________________________________________________________
 
 ## Component Specs
 
-### LoRA Merge (one-time prep)
+### M0 sanity stub
+
+Single-purpose script the agent should write at `scripts/vox_daemon/m0_sanity.py`
+(or run as a one-liner). Confirms the LoRA loads on top of the base and decodes one clip.
+
+```python
+"""M0: load S1-M7 LoRA + transcribe 1 val clip. Sanity check, no WER."""
+
+from peft import PeftModel
+from transformers import WhisperForConditionalGeneration, WhisperProcessor
+import torch, librosa
+
+BASE = "openai/whisper-small.en"
+LORA = "out/feedback_finetune/batch_20260317_110057/checkpoint"
+# pick any val clip; example below is the first val row in dataset_v1_manifest.csv
+WAV = "/Users/skinnercheng/Downloads/takeout-E407/euphonia_002f4f2d5ad6ecd94202d4ef92719c02.wav"
+EXPECTED = "can you play some music"  # from results/M7_feedback_finetune/predictions.csv
+
+base = WhisperForConditionalGeneration.from_pretrained(BASE)
+proc = WhisperProcessor.from_pretrained(BASE)
+model = PeftModel.from_pretrained(base, LORA).eval()
+audio, _ = librosa.load(WAV, sr=16000)
+inputs = proc(audio, sampling_rate=16000, return_tensors="pt").input_features
+with torch.no_grad():
+    ids = model.generate(inputs, language="en", task="transcribe")
+print("Hypothesis:", proc.batch_decode(ids, skip_special_tokens=True)[0])
+print("Reference:", EXPECTED)
+```
+
+Gate: hypothesis is recognizable English close to reference (the val clip used here is
+WER=0 in S1-M7, so a clean "can you play some music" is expected on MPS/CPU; small
+floating-point variance is fine).
+
+### LoRA Merge (one-time prep — M1)
 
 File: `scripts/vox_daemon/merge_lora.py`
 
@@ -473,14 +534,12 @@ from pathlib import Path
 from peft import PeftModel
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
+BASE_MODEL_ID = "openai/whisper-small.en"
 
-def merge(
-    base_model_id: str,
-    lora_checkpoint: str,
-    output_dir: str,
-) -> None:
-    base = WhisperForConditionalGeneration.from_pretrained(base_model_id)
-    processor = WhisperProcessor.from_pretrained(base_model_id)
+
+def merge(lora_checkpoint: str, output_dir: str) -> None:
+    base = WhisperForConditionalGeneration.from_pretrained(BASE_MODEL_ID)
+    processor = WhisperProcessor.from_pretrained(BASE_MODEL_ID)
 
     peft_model = PeftModel.from_pretrained(base, lora_checkpoint)
     merged = peft_model.merge_and_unload()  # bake LoRA weights into base
@@ -489,15 +548,41 @@ def merge(
     out.mkdir(parents=True, exist_ok=True)
     merged.save_pretrained(out)
     processor.save_pretrained(out)
+    # Preserve generation_config so downstream code doesn't need to re-set lang/task:
+    merged.generation_config.save_pretrained(out)
     print(f"Saved merged HF model to {out}")
-    print("Next: python -m mlx_whisper.convert "
-          f"--hf-path {out} --mlx-path {out}_mlx")
+
+
+def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("--lora", default="out/feedback_finetune/batch_20260317_110057/checkpoint")
+    p.add_argument("--out", default="out/whisper_small_en_s1m7_merged")
+    args = p.parse_args()
+    merge(args.lora, args.out)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+After merge, convert to MLX:
+
+```bash
+python -m mlx_whisper.convert \
+  --torch-name-or-path ./out/whisper_small_en_s1m7_merged \
+  --mlx-path ./out/whisper_small_en_s1m7_merged_mlx \
+  --dtype float16
 ```
 
 **Why `merge_and_unload` is safe:** the merge is a deterministic linear combination
 (`W_merged = W_base + alpha/rank * B @ A`) — produces a model with identical numerical
 behavior to the LoRA-active model under inference, with zero overhead. This is the
 standard PEFT export path.
+
+**mlx-whisper convert flag note:** the actual flag is `--torch-name-or-path` (it accepts
+both HF Hub IDs and local HF Transformers checkpoint dirs); the non-existent `--hf-path`
+flag is a common mistake. Verify with `python -m mlx_whisper.convert --help` after
+install.
 
 ### WhisperLiveKit Serving
 
@@ -509,7 +594,7 @@ wlk --backend mlx-whisper \
     --model ./out/whisper_small_en_s1m7_merged_mlx \
     --host 127.0.0.1 --port 8001 \
     --min-chunk-size 0.5 \
-    --vac \                    # voice activity controller for endpoint detection
+    --vac \                    # Silero-VAD-based voice activity controller
     --vac-chunk-size 0.04
 ```
 
@@ -518,11 +603,24 @@ Key flags:
 - `--backend mlx-whisper`: Apple Silicon native; 4-6× faster than vanilla PyTorch
 - `--min-chunk-size 0.5`: balance between latency and accuracy. 0.5s gives ~1s commit
   latency. Day 0 step in M2 will tune this against measured RTF.
-- `--vac`: enable Voice Activity Controller, required for endpoint events that trigger
-  Gemma correction
-- `--no-lora-path`: we use a merged model, not a separate LoRA — full speed on MLX
+- `--vac`: enable WhisperLiveKit's Voice Activity Controller. **This is Silero VAD
+  internally** — WhisperLiveKit imports the `silero-vad` PyPI package (already in our
+  pyproject) and feeds 32ms (`--vac-chunk-size 0.04` ≈ 512 samples at 16kHz, the v6 API
+  contract) frames to the Silero ONNX model to gate endpoint detection. Required for
+  endpoint events that trigger Gemma Stage B correction. No separate VAD pre-filter
+  needed; we use one Silero VAD instance owned by WhisperLiveKit.
+- **No `--lora-path`**: WhisperLiveKit's `--lora-path` flag is PyTorch-backend-only and
+  would lose MLX speed. We pass a merged model via `--model` instead and simply don't
+  pass `--lora-path` at all.
+- `--no-static` is **assumed** but not verified — if it doesn't exist, suppress the
+  bundled UI by binding port 8001 to localhost only and ignoring the served HTML.
+- **M2 verification step:** run `wlk --help` and confirm exact backend names, flag
+  spellings, and the WS endpoint path (this spec assumes `/asr`; upstream may use `/`
+  or `/ws`). The flag list above is from upstream docs; expect minor drift.
 
-**WebSocket protocol** (consumed by daemon, not browser):
+**WebSocket protocol — from upstream README; verify against installed version in M2.**
+
+Consumed by daemon, not browser:
 
 ```json
 {
@@ -535,7 +633,10 @@ Key flags:
 }
 ```
 
-The daemon detects "line just committed" by diffing successive `lines` arrays.
+The daemon detects "line just committed" by diffing successive `lines` arrays. Open
+Question 2 covers the residual risk that the diff signal is unreliable (e.g., line text
+mutates mid-utterance) — M2 logging captures the actual stream so M4 can finalize the
+diff predicate.
 
 ### Gemma 4 GGUF Integration
 
@@ -581,13 +682,26 @@ class GemmaWorker:
         prompt = PROMPT_TEMPLATE.format(stage_a_text=stage_a_text)
         self.proc.stdin.write(prompt + "\n")
         self.proc.stdin.flush()
-        try:
-            return self.q.get(timeout=timeout).strip()
-        except queue.Empty:
-            return stage_a_text  # fallback: no correction
+        # llama-cli with --simple-io --single-turn emits multiple stdout lines and a
+        # sentinel/EOT before going idle. Drain until the prompt sentinel "Output:" is
+        # echoed back blank, or until quiet for `quiet_window` seconds. Tune this stub
+        # against actual llama-cli output during M4.
+        deadline = __import__("time").monotonic() + timeout
+        chunks: list[str] = []
+        while __import__("time").monotonic() < deadline:
+            try:
+                chunks.append(self.q.get(timeout=0.1))
+            except queue.Empty:
+                if chunks:
+                    break
+        if not chunks:
+            return stage_a_text  # timeout fallback
+        return " ".join(c.strip() for c in chunks if c.strip()).strip()
 ```
 
-Reuses Day 0 validated config (`--reasoning off`, p95 ~430ms warm).
+Reuses Day 0 validated config (`--reasoning off`, p95 ~430ms warm). The exact stdout
+shape from `llama-cli --simple-io --single-turn` needs to be inspected against the
+installed binary (`llama-cli --version`) — adjust drain loop accordingly in M4.
 
 ### Stage A / Stage B Proxy
 
@@ -682,22 +796,25 @@ ______________________________________________________________________
 scripts/
   serving/                 ← UNTOUCHED (S1 FastAPI, Phase 2)
   baseline_eval/
-    inference.py           ← REUSE: load merged Whisper checkpoint for offline WER eval
+    inference.py           ← REUSE pieces only (Whisper transcription helpers)
     metrics.py             ← REUSE: WER/CER computation
-    normalization.py       ← REUSE: create_normalizer(version=2)
-    cli.py                 ← REUSE (point at merged model dir)
+    normalization.py       ← REUSE: create_normalizer(version=2) — call explicitly
+    cli.py                 ← UNTOUCHED (only accepts --model_size; not used in S2 evals)
   feedback_finetune/       ← UNTOUCHED (S1-M7 trainer; not used in S2)
   fine_tuning/             ← UNTOUCHED (S1 base trainer; not used in S2)
   zipformer_eval/          ← KEPT FROM ABANDONED ZIPFORMER PLAN (still useful for any future Zipformer eval)
   zipformer_finetune/      ← KEPT FROM ABANDONED ZIPFORMER PLAN
-  vox_daemon/              ← NEW: M4 + M5 daemon
+  vox_daemon/              ← NEW: M0 + M1 + M3 + M4 + M5
     __main__.py
-    cli.py
-    proxy.py               # Browser ↔ WhisperLiveKit ↔ Gemma proxy
-    gemma.py               # Gemma 4 subprocess wrapper (validated Day 0)
-    merge_lora.py          # One-time: merge S1-M7 LoRA → HF → MLX
+    cli.py                 # Daemon CLI (M5)
+    proxy.py               # Browser ↔ WhisperLiveKit ↔ Gemma proxy (M4)
+    gemma.py               # Gemma 4 subprocess wrapper, validated Day 0
+    merge_lora.py          # M1: merge S1-M7 LoRA → HF
+    m0_sanity.py           # M0: load LoRA, transcribe 1 clip
+    eval_merged.py         # M3: parity-check merged-model WER vs S1-M7
+    eval_offline.py        # M4: Stage A + Stage B WER over val split
     static/
-      index.html           # Custom Chrome frontend
+      index.html           # Custom Chrome frontend (M5)
 ```
 
 Note: We do NOT need a separate WhisperLiveKit wrapper — `wlk` is invoked as a
@@ -710,8 +827,15 @@ ______________________________________________________________________
 **No new training data required.** The S1-M7 LoRA was already trained on the merged
 manifest (3,005 train + feedback corrections, ~4h total). Stage 2 reuses:
 
-- S1 frozen splits for evaluation (val=361, test=365 — `results/M7_feedback_finetune/predictions.csv`)
-- `~/Downloads/takeout-E407/` audio for any Stage 2 smoke tests
+- **Manifest for eval** — `out/dataset_v1/20260206-142756/dataset_v1_manifest.csv`
+  (3623 rows total: 2897 train / 365 test / **361 val**). Column
+  `audio_path_resolved` has stale `/Users/skinner/...` paths — remap to
+  `/Users/skinnercheng/...` before reading audio.
+- **S1-M7 reference predictions** — `results/M7_feedback_finetune/predictions.csv`
+  (361 val rows; columns: `file_name`, `reference`, `hypothesis`, `wer`). NOT a
+  manifest (no audio path) — useful as ground-truth references in joins, not as
+  iteration source.
+- `~/Downloads/takeout-E407/` audio (Project Euphonia drop) for any Stage 2 smoke tests
 - `~/Downloads/feedback/` audio (108 clips) for any Stage 2 feedback-loop testing
 
 ______________________________________________________________________
@@ -722,16 +846,33 @@ ______________________________________________________________________
 
 Goal: confirm `merge_and_unload` + MLX conversion didn't change inference numerics.
 
-```bash
-source venv/bin/activate
-python -m scripts.baseline_eval \
-  --manifest_path ./results/M7_feedback_finetune/predictions.csv \
-  --model_path ./out/whisper_small_en_s1m7_merged \
-  --norm_version 2 \
-  --output ./results/S2-M3_whisper_merged_baseline/
+**Implementation note:** the existing `scripts/baseline_eval/cli.py` only accepts a Whisper
+size string (`--model_size {tiny,base,small,medium,large}.en`) — it cannot load a
+custom HF checkpoint, and it calls `create_normalizer()` defaulting to v1 (the S1-M7
+34.05% number was measured with v2). Two implementation options:
+
+- **Option A (recommended): write a dedicated eval script** at
+  `scripts/vox_daemon/eval_merged.py`. It loads the merged HF checkpoint via
+  `WhisperForConditionalGeneration.from_pretrained(merged_dir)`, iterates the val split
+  from `out/dataset_v1/20260206-142756/dataset_v1_manifest.csv` (filter `split=='val'`,
+  361 rows), normalizes with `create_normalizer(version=2)`, computes WER via
+  `scripts/baseline_eval/metrics.py`, writes `metrics.json` + `predictions.csv` to
+  `results/S2-M3_whisper_merged_baseline/`. Mirrors the prior `M7_feedback_finetune/`
+  output schema.
+- **Option B:** extend `scripts/baseline_eval/cli.py` with `--checkpoint_path` and
+  `--norm_version` flags. More invasive, but reusable for future LoRA evals.
+
+**Manifest path-fixup gotcha:** `dataset_v1_manifest.csv` was written on a different
+machine and stores `/Users/skinner/...` paths; on this Mac mini, audio lives at
+`/Users/skinnercheng/...`. The eval script must remap before opening files:
+
+```python
+df["audio_path_resolved"] = df["audio_path_resolved"].str.replace(
+    "/Users/skinner/", "/Users/skinnercheng/", regex=False
+)
 ```
 
-**Gate:** WER within ±0.5% of S1-M7's 34.05%. Tighter is better.
+**Gate:** WER within ±0.5% of S1-M7's 34.05% on the same 361-clip val split.
 
 ### M4: Gemma Stage B correction eval
 
@@ -739,15 +880,17 @@ Goal: measure WER and false-correction rate of the Stage A → Stage B pipeline 
 
 ```bash
 python -m scripts.vox_daemon.eval_offline \
-  --manifest ./results/M7_feedback_finetune/predictions.csv \
+  --manifest ./out/dataset_v1/20260206-142756/dataset_v1_manifest.csv \
+  --split val \
   --whisper-model ./out/whisper_small_en_s1m7_merged_mlx \
   --gemma-model ./models/gemma/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf \
   --output ./results/S2-M4_gemma_correction_eval/
 ```
 
-This is a script we'll write under `scripts/vox_daemon/`. It runs offline (no
-WebSocket, no streaming) but uses the same Gemma worker the live daemon uses — so the
-Stage B output is faithful to what the demo will produce.
+`eval_offline.py` is a script written under `scripts/vox_daemon/` for this milestone.
+Apply the same `/Users/skinner/` → `/Users/skinnercheng/` path remap as M3. It runs
+offline (no WebSocket, no streaming) but uses the same Gemma worker the live daemon
+uses — Stage B output is faithful to what the demo will produce.
 
 **Gates:**
 
@@ -800,13 +943,17 @@ ______________________________________________________________________
 
 ## Pre-Implementation Blockers
 
-| #   | Blocker                                                                                             | When     | Owner                                    |
-| --- | --------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------- |
-| 1   | Identify which `out/feedback_finetune/batch_<id>/` on the MBP corresponds to S1-M7 (val WER 34.05%) | M0 start | User checks `metrics.json` in each batch |
-| 2   | Transfer that checkpoint dir from MBP → Mac mini via rsync                                          | M0 start | rsync -avzP from MBP IP                  |
-| 3   | WhisperLiveKit installs cleanly on M4 Pro with MLX backend                                          | M2 start | pip install + smoke test                 |
-| 4   | `mlx-whisper.convert` accepts a HF Whisper checkpoint                                               | M1 start | One-shot convert + load test             |
-| 5   | WhisperLiveKit's WebSocket protocol matches the proxy assumptions                                   | M4 start | Inspect actual protocol via M2 logs      |
+1. **[Done — M0]** Identify which `out/feedback_finetune/batch_<id>/` corresponds to S1-M7
+   (val WER 34.05%). → `batch_20260317_110057/` (verified `metrics.json`).
+1. **[Done — M0]** Transfer checkpoint dir from MBP → Mac mini via rsync. → checkpoint
+   present locally.
+1. **[Open — M2]** WhisperLiveKit installs cleanly on M4 Pro with MLX backend (pip
+   install + smoke test).
+1. **[Open — M1]** `mlx-whisper.convert` accepts a HF Whisper checkpoint (one-shot
+   convert + load test).
+1. **[Open — M2]** WhisperLiveKit's CLI flags + WebSocket protocol match the spec
+   assumptions (run `wlk --help`, log a connection's stream, confirm `lines`/`buffer`
+   field names + WS endpoint path before M4 proxy work begins).
 
 ______________________________________________________________________
 
@@ -829,10 +976,19 @@ ______________________________________________________________________
    ~400ms generation. Mitigation: serialize, or run Gemma on CPU only (`-ngl 0` in
    llama.cpp). M5 measures.
 
-1. **Final-day move from Mac mini → MBP.** All artifacts (merged model, MLX-converted
-   model, daemon code, Gemma GGUF) need to be on the MBP by Sunday evening. Plan Sunday
-   night for full integration test on demo machine.
+1. **Final-day move from Mac mini → MBP.** All artifacts need to be on the MBP by
+   Sunday evening for a full integration test on the demo machine. Concrete checklist:
 
-1. **WhisperLiveKit version churn.** The project moves fast; pinning a specific version
-   is recommended. Pre-Implementation Blocker #5 includes verifying our assumptions
-   against the installed version.
+   ```bash
+   # From MBP, pulling from Mac mini (replace with Mac mini's hostname/IP):
+   rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/out/whisper_small_en_s1m7_merged_mlx \
+        ~/Projects/VOX_Personalis/out/
+   rsync -avzP <mac-mini>:~/Projects/VOX_Personalis/scripts/vox_daemon/ \
+        ~/Projects/VOX_Personalis/scripts/vox_daemon/
+   # Gemma GGUF (~17GB) — copy once if not already on MBP.
+   # Run `git pull` on MBP for committed code.
+   ```
+
+1. **WhisperLiveKit version churn.** The project moves fast; record the installed
+   version (`pip show whisperlivekit` after install) and pin in `pyproject.toml`.
+   Blocker #5 covers the actual flag/protocol verification.

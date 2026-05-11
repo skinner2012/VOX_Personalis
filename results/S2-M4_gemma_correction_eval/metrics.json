@@ -1,0 +1,78 @@
+{
+  "stage_a": {
+    "sample_count": 361,
+    "total_duration_sec": 1649.64,
+    "total_words": 1806,
+    "total_chars": 8601,
+    "wer": 0.3555,
+    "cer": 0.2406,
+    "insertions": 105,
+    "deletions": 45,
+    "substitutions": 492,
+    "by_duration_bin": {
+      "(1.0, 3]": {
+        "sample_count": 105,
+        "wer": 0.3321,
+        "cer": 0.2523
+      },
+      "(10.0, 30]": {
+        "sample_count": 17,
+        "wer": 0.4512,
+        "cer": 0.2464
+      },
+      "(3.0, 10]": {
+        "sample_count": 239,
+        "wer": 0.3448,
+        "cer": 0.2372
+      }
+    }
+  },
+  "stage_b": {
+    "sample_count": 361,
+    "total_duration_sec": 1649.64,
+    "total_words": 1806,
+    "total_chars": 8601,
+    "wer": 0.3677,
+    "cer": 0.255,
+    "insertions": 123,
+    "deletions": 51,
+    "substitutions": 490,
+    "by_duration_bin": {
+      "(1.0, 3]": {
+        "sample_count": 105,
+        "wer": 0.3893,
+        "cer": 0.3279
+      },
+      "(10.0, 30]": {
+        "sample_count": 17,
+        "wer": 0.4744,
+        "cer": 0.266
+      },
+      "(3.0, 10]": {
+        "sample_count": 239,
+        "wer": 0.3455,
+        "cer": 0.2388
+      }
+    }
+  },
+  "comparison": {
+    "stage_a_wer": 0.3555,
+    "stage_b_wer": 0.3677,
+    "wer_delta": 0.0122,
+    "stage_b_wer_le_stage_a_wer": false
+  },
+  "false_correction": {
+    "rate": 0.0277,
+    "n_worsened": 10,
+    "n_improved": 6,
+    "n_unchanged": 345,
+    "n_clips": 361,
+    "gate_lt_15pct": true
+  },
+  "gates": {
+    "stage_b_wer_le_stage_a": false,
+    "false_correction_lt_15pct": true,
+    "all_pass": false
+  },
+  "runtime_sec": 231.5
+}

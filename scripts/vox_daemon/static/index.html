@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOX Personalis</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --surface: #1a1d24;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --muted: #8b94a3;
+      --accent: #5eead4;
+      --warn: #fbbf24;
+      --error: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+    body {
+      display: flex; flex-direction: column;
+      max-width: 880px; margin: 0 auto; padding: 24px;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0; font-size: 1.4rem; font-weight: 600; letter-spacing: 0.02em; }
+    .status-bar { display: flex; align-items: center; gap: 16px; font-size: 0.9rem; }
+    #status {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--muted);
+    }
+    #status.connected { color: var(--accent); }
+    #status::before {
+      content: "●";
+      color: currentColor;
+    }
+    button#mic-toggle {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 16px; font-size: 0.9rem; font-weight: 500;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    button#mic-toggle:hover { background: #232730; }
+    button#mic-toggle.recording {
+      background: #2a1718; border-color: var(--error); color: #fca5a5;
+    }
+
+    section { margin-bottom: 28px; }
+    h2 {
+      font-size: 0.8rem; font-weight: 500; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      margin: 0 0 12px 0;
+    }
+
+    /* Current utterance */
+    #current {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      min-height: 100px;
+    }
+    .line {
+      font-size: 1.15rem; line-height: 1.6;
+      outline: none; padding: 4px 6px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .line:hover { background: rgba(255, 255, 255, 0.03); }
+    .line:focus { background: rgba(94, 234, 212, 0.06); }
+    .line.stage-a {
+      color: var(--text);
+    }
+    .line.stage-b {
+      color: var(--text); font-weight: 600;
+    }
+    .polishing {
+      display: inline-block;
+      margin-left: 8px;
+      color: var(--warn);
+      animation: pulse 1.2s ease-in-out infinite;
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50%      { opacity: 1; }
+    }
+    #buffer {
+      color: var(--muted); font-style: italic; font-size: 1.15rem;
+      line-height: 1.6; padding: 4px 6px;
+      min-height: 1.6em;
+    }
+
+    /* History */
+    #history-list {
+      list-style: none; margin: 0; padding: 0;
+    }
+    #history-list li {
+      padding: 8px 6px; border-bottom: 1px solid var(--border);
+      color: var(--muted); font-size: 0.95rem; line-height: 1.5;
+      outline: none; border-radius: 4px;
+    }
+    #history-list li:last-child { border-bottom: none; }
+    #history-list li:hover { background: rgba(255, 255, 255, 0.02); }
+    #history-list li:focus { background: rgba(94, 234, 212, 0.04); color: var(--text); }
+
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 10px 16px; border-radius: 8px; font-size: 0.9rem;
+      color: var(--text); opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+    #toast.error { border-color: var(--error); color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>VOX Personalis</h1>
+    <div class="status-bar">
+      <span id="status">disconnected</span>
+      <button id="mic-toggle" type="button">Start mic</button>
+    </div>
+  </header>
+
+  <section id="current">
+    <h2>Current utterance</h2>
+    <div id="current-lines"></div>
+    <div id="buffer"></div>
+  </section>
+
+  <section id="history-section">
+    <h2>History</h2>
+    <ul id="history-list"></ul>
+  </section>
+
+  <div id="toast"></div>
+
+  <script>
+    // Maximum history entries kept in the lower pane.
+    const HISTORY_LIMIT = 5;
+    // Only treat the LAST line in wlk's lines[] as "current"; older entries
+    // move to the history list. This matches the spec's UI layout.
+    const state = {
+      ws: null,
+      audioCtx: null,
+      micStream: null,
+      workletNode: null,
+      sourceNode: null,
+      recording: false,
+      lines: [],  // { text, hasStageB, uid }
+      buffer: "",
+    };
+
+    const $status   = document.getElementById("status");
+    const $mic      = document.getElementById("mic-toggle");
+    const $lines    = document.getElementById("current-lines");
+    const $buffer   = document.getElementById("buffer");
+    const $history  = document.getElementById("history-list");
+    const $toast    = document.getElementById("toast");
+
+    function showToast(msg, isError) {
+      $toast.textContent = msg;
+      $toast.className = "show" + (isError ? " error" : "");
+      setTimeout(() => { $toast.className = ""; }, 3000);
+    }
+
+    // -- WebSocket plumbing --
+    function connectWS() {
+      const url = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/asr";
+      state.ws = new WebSocket(url);
+      state.ws.binaryType = "arraybuffer";
+      state.ws.onopen    = () => { $status.textContent = "live"; $status.classList.add("connected"); };
+      state.ws.onclose   = () => { $status.textContent = "disconnected"; $status.classList.remove("connected"); setTimeout(connectWS, 1500); };
+      state.ws.onerror   = () => { showToast("WebSocket error", true); };
+      state.ws.onmessage = onMessage;
+    }
+
+    function onMessage(ev) {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg.type === "stage_a") handleStageA(msg);
+      else if (msg.type === "stage_b") handleStageB(msg);
+    }
+
+    function handleStageA(msg) {
+      // msg.lines: array of {speaker, text, start, end}
+      // msg.buffer: in-flight partial text
+      const incoming = msg.lines || [];
+      // Extend state.lines for any newly committed lines.
+      while (state.lines.length < incoming.length) {
+        state.lines.push({
+          text: incoming[state.lines.length].text || "",
+          hasStageB: false,
+          uid: null,
+        });
+      }
+      // Refresh text on lines that haven't received Stage B yet.
+      for (let i = 0; i < incoming.length; i++) {
+        if (!state.lines[i].hasStageB) {
+          state.lines[i].text = incoming[i].text || "";
+        }
+      }
+      state.buffer = msg.buffer || "";
+      render();
+    }
+
+    function handleStageB(msg) {
+      const i = msg.line_index;
+      if (i < 0 || i >= state.lines.length) return;
+      state.lines[i].text = msg.text || "";
+      state.lines[i].hasStageB = true;
+      state.lines[i].uid = msg.uid;
+      render();
+    }
+
+    // -- Rendering --
+    // Update DOM incrementally to avoid clobbering the user's cursor while
+    // they're typing in a line. Skip text updates on the focused element
+    // (otherwise a Stage A streaming refresh resets the caret mid-keystroke).
+    function render() {
+      const focused = document.activeElement;
+      const lastIdx = state.lines.length - 1;
+
+      // -- Current line (only the last line of state.lines lives here) --
+      const currentLine = lastIdx >= 0 ? state.lines[lastIdx] : null;
+
+      // Remove all but at most one child div from #current-lines.
+      while ($lines.children.length > 1) $lines.lastChild.remove();
+      if (currentLine === null) {
+        if ($lines.children.length) $lines.lastChild.remove();
+      } else {
+        let div = $lines.firstElementChild;
+        if (!div) {
+          div = document.createElement("div");
+          div.contentEditable = "true";
+          div.spellcheck = false;
+          $lines.appendChild(div);
+        }
+        // Reuse the div, just rewrite text/state. We rebuild children so the
+        // polishing dot indicator can come and go without leaking nodes.
+        const wantsIndicator = !currentLine.hasStageB;
+        if (div !== focused || div.textContent !== currentLine.text) {
+          div.textContent = currentLine.text;
+          if (wantsIndicator) {
+            const span = document.createElement("span");
+            span.className = "polishing";
+            span.textContent = "•••";
+            div.appendChild(span);
+          }
+        } else {
+          // Already-focused: leave text alone, but ensure indicator presence
+          // tracks state. Remove any stale indicator if Stage B has arrived.
+          const indicator = div.querySelector(".polishing");
+          if (indicator && !wantsIndicator) indicator.remove();
+          if (!indicator && wantsIndicator) {
+            const span = document.createElement("span");
+            span.className = "polishing";
+            span.textContent = "•••";
+            div.appendChild(span);
+          }
+        }
+        div.className = "line " + (currentLine.hasStageB ? "stage-b" : "stage-a");
+        div.dataset.index = String(lastIdx);
+      }
+      $buffer.textContent = state.buffer;
+
+      // -- History (all earlier lines, newest first, capped) --
+      const historyLines = state.lines.slice(0, lastIdx).reverse().slice(0, HISTORY_LIMIT);
+      while ($history.children.length > historyLines.length) $history.lastChild.remove();
+      while ($history.children.length < historyLines.length) {
+        const li = document.createElement("li");
+        li.contentEditable = "true";
+        li.spellcheck = false;
+        $history.appendChild(li);
+      }
+      for (let i = 0; i < historyLines.length; i++) {
+        const li = $history.children[i];
+        if (li !== focused && li.textContent !== historyLines[i].text) {
+          li.textContent = historyLines[i].text;
+        }
+      }
+    }
+
+    // -- Mic capture --
+    async function startMic() {
+      // 1. Request mic permission. Most user-visible failure happens here:
+      //    NotAllowedError (denied), NotFoundError (no device),
+      //    NotReadableError (another app has it), SecurityError (insecure origin).
+      try {
+        state.micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        });
+      } catch (err) {
+        const name = err.name || "Error";
+        const tips = {
+          NotAllowedError: "Allow mic for this page (chrome://settings/content/microphone) and reload.",
+          NotFoundError: "No microphone found by the browser.",
+          NotReadableError: "Another app is using the mic — close it (Zoom, Discord, etc).",
+          SecurityError: "Page isn't on a secure origin. Use http://localhost:8000.",
+        };
+        const tip = tips[name] || err.message || "Unknown reason.";
+        showToast(`Mic blocked (${name}): ${tip}`, true);
+        await stopMic();
+        return;
+      }
+
+      // 2. Bring up the audio graph. Failures here are programming-class
+      //    (AudioWorklet module load, sample-rate not supported, etc).
+      try {
+        state.audioCtx = new AudioContext({ sampleRate: 16000 });
+        await state.audioCtx.audioWorklet.addModule("worklet.js");
+        state.workletNode = new AudioWorkletNode(state.audioCtx, "pcm-streamer");
+        state.workletNode.port.onmessage = (e) => {
+          if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+            state.ws.send(e.data);
+          }
+        };
+        state.sourceNode = state.audioCtx.createMediaStreamSource(state.micStream);
+        state.sourceNode.connect(state.workletNode);
+        // workletNode is NOT connected to ctx.destination — silent capture.
+        state.recording = true;
+        $mic.textContent = "Stop mic";
+        $mic.classList.add("recording");
+        showToast("Mic on — speak naturally");
+      } catch (err) {
+        showToast(`Audio init failed: ${err.name || ""} ${err.message || err}`, true);
+        await stopMic();
+      }
+    }
+
+    async function stopMic() {
+      try { state.sourceNode && state.sourceNode.disconnect(); } catch {}
+      try { state.workletNode && state.workletNode.disconnect(); } catch {}
+      try { state.workletNode && (state.workletNode.port.onmessage = null); } catch {}
+      if (state.micStream) {
+        state.micStream.getTracks().forEach(t => t.stop());
+        state.micStream = null;
+      }
+      if (state.audioCtx) {
+        try { await state.audioCtx.close(); } catch {}
+        state.audioCtx = null;
+      }
+      state.sourceNode = state.workletNode = null;
+      state.recording = false;
+      $mic.textContent = "Start mic";
+      $mic.classList.remove("recording");
+    }
+
+    $mic.addEventListener("click", () => {
+      if (state.recording) stopMic(); else startMic();
+    });
+
+    connectWS();
+  </script>
+</body>
+</html>

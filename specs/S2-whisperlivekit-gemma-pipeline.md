@@ -1246,6 +1246,56 @@ Expected client output:
 If the output text appears, **the MBP demo path is ready**. Subsequent milestones
 (M3 WER parity, M4 Gemma Stage B, M5 daemon + Chrome) build on top of this.
 
+### 7. Run the M5 demo
+
+The vox_daemon orchestrator spawns wlk + Gemma + the proxy + the Chrome
+frontend with one command. Stop any leftover wlk / llama-cli processes from
+step 6 first; the daemon needs ports 8000 and 8001 free.
+
+```bash
+source venv/bin/activate
+pkill -f "whisperlivekit.basic_server" 2>/dev/null
+pkill -f llama-cli 2>/dev/null
+
+python -m scripts.vox_daemon --open-browser
+# (or: --port 8000 --wlk-port 8001 --gemma-correction-timeout 1.5)
+```
+
+The daemon prints these signposts in order; expect ~5 s end-to-end on M4 Pro:
+
+```text
+[daemon] spawning wlk: …
+[wlk:err] INFO:     Application startup complete.
+[daemon] wlk is ready
+[daemon] starting Gemma worker (this can take ~3-50s)…
+[daemon] Gemma worker ready in 3.2s
+[daemon] serving at http://localhost:8000
+```
+
+Chrome opens to `http://localhost:8000`. First-time setup:
+
+- **Allow microphone** in the browser permission prompt.
+- macOS prerequisite: System Settings → Privacy & Security → Microphone →
+  enable Google Chrome. If the OS-level toggle is off, the page-level
+  permission silently fails with `NotAllowedError`/`NotFoundError`.
+
+Then click **Start mic** and speak. You should see:
+
+- Buffer (grey italic) growing as you speak.
+- Committed line text appearing within ~1 s of words stabilising.
+- Pulsing `•••` polishing indicator on the line while Gemma is mid-correction.
+- Stage B (white bold) replacing the line ~1–2 s after a natural speech pause.
+- Earlier utterances moving into the History pane (most-recent first, capped
+  at 5).
+
+Both Stage A and Stage B lines are `contenteditable` — click in to type. Per
+M5 design, Stage B unconditionally overwrites whatever's there when it
+arrives, so user edits inside the polishing window may be clobbered; that's
+an accepted trade-off (see "Accepted Phase 1 Limitations").
+
+Stop the daemon with Ctrl+C in the terminal; cli.py tears down Gemma and wlk
+cleanly. Logs and state are ephemeral by design — no audio is written to disk.
+
 ______________________________________________________________________
 
 ## Pre-Implementation Blockers
